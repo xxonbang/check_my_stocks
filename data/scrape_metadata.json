@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-01-21T13:43:26.607Z",
+  "results": [
+    {
+      "code": "005930",
+      "name": "삼성전자",
+      "success": true,
+      "error": null
+    },
+    {
+      "code": "000660",
+      "name": "SK하이닉스",
+      "success": true,
+      "error": null
+    },
+    {
+      "code": "035720",
+      "name": "카카오",
+      "success": true,
+      "error": null
+    }
+  ]
+}

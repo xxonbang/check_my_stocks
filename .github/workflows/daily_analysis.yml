@@ -1,0 +1,85 @@
+name: Daily Stock Analysis
+
+on:
+  schedule:
+    # KST 오전 8시, 오후 1시, 오후 10시 (UTC 기준)
+    - cron: '0 23 * * *'  # KST 08:00
+    - cron: '0 4 * * *'   # KST 13:00
+    - cron: '0 13 * * *'  # KST 22:00
+  workflow_dispatch:  # 수동 실행 허용
+  repository_dispatch:
+    types: [manual_analysis]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run scraper
+        run: npm run scrape
+        continue-on-error: true
+
+      - name: Run AI analysis
+        env:
+          GEMINI_API_KEY_01: ${{ secrets.GEMINI_API_KEY_01 }}
+          GEMINI_API_KEY_02: ${{ secrets.GEMINI_API_KEY_02 }}
+        run: npm run analyze
+
+      - name: Copy data to public folder
+        run: |
+          mkdir -p public/data
+          cp data/analysis_results.json public/data/
+          cp data/stocks.json public/data/
+
+      - name: Commit and push results
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/ public/
+          git diff --staged --quiet || git commit -m "Update analysis results $(date +'%Y-%m-%d %H:%M')"
+          git push
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    needs: analyze
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
