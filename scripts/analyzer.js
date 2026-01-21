@@ -39,8 +39,8 @@ function loadImageAsBase64(imagePath) {
 
 // 숫자 문자열에서 숫자만 추출
 function parsePrice(value) {
-  if (value === null || value === undefined || value === 'N/A') return null;
-  const str = String(value).replace(/[^0-9.-]/g, '');
+  if (value === null || value === undefined || value === "N/A") return null;
+  const str = String(value).replace(/[^0-9.-]/g, "");
   const num = parseFloat(str);
   return isNaN(num) ? null : num;
 }
@@ -57,12 +57,16 @@ function validateExtractedData(data, stockName) {
 
   // 시가와 전일이 동일한 경우 경고 (다를 수 있음)
   if (openPrice !== null && prevClose !== null && openPrice === prevClose) {
-    warnings.push(`시가(${openPrice})와 전일(${prevClose})이 동일함 - 확인 필요`);
+    warnings.push(
+      `시가(${openPrice})와 전일(${prevClose})이 동일함 - 확인 필요`,
+    );
   }
 
   // 고가 >= 시가 검증
   if (highPrice !== null && openPrice !== null && highPrice < openPrice) {
-    warnings.push(`고가(${highPrice}) < 시가(${openPrice}) - 비정상적인 데이터`);
+    warnings.push(
+      `고가(${highPrice}) < 시가(${openPrice}) - 비정상적인 데이터`,
+    );
   }
 
   // 저가 <= 시가 검증
@@ -77,16 +81,20 @@ function validateExtractedData(data, stockName) {
 
   // 현재가가 고가/저가 범위 내인지 검증
   if (currentPrice !== null && highPrice !== null && currentPrice > highPrice) {
-    warnings.push(`현재가(${currentPrice}) > 고가(${highPrice}) - 비정상적인 데이터`);
+    warnings.push(
+      `현재가(${currentPrice}) > 고가(${highPrice}) - 비정상적인 데이터`,
+    );
   }
 
   if (currentPrice !== null && lowPrice !== null && currentPrice < lowPrice) {
-    warnings.push(`현재가(${currentPrice}) < 저가(${lowPrice}) - 비정상적인 데이터`);
+    warnings.push(
+      `현재가(${currentPrice}) < 저가(${lowPrice}) - 비정상적인 데이터`,
+    );
   }
 
   if (warnings.length > 0) {
     console.warn(`[${stockName}] 데이터 검증 경고:`);
-    warnings.forEach(w => console.warn(`  - ${w}`));
+    warnings.forEach((w) => console.warn(`  - ${w}`));
   }
 
   return warnings;
@@ -171,7 +179,9 @@ function buildSingleStockPrompt(stock) {
    - 매매 시그널 (signal): "매수", "매도", "관망" 중 하나
 
 **[리포트 작성 지침]**
-추출한 모든 데이터를 기반으로 종합적인 AI 분석 리포트를 작성하세요:
+- 오늘 날짜 기준의 실시간 웹 검색(Google Search Tool 사용 권장)을 수행하여 해당 종목에 대한 최신 뉴스, 시장 동향, 경제 지표를 조사하세요
+- 수집한 최신 정보와 함께 이미지에서 추출한 데이터를 종합적으로 분석하세요
+- 추출한 모든 데이터를 기반으로 종합적인 AI 분석 리포트를 작성하세요
 
 [분석에 반드시 포함할 내용]
 - 일봉 차트 패턴 분석 (이미지에서 확인되는 추세, 지지/저항선, 패턴)
