@@ -37,18 +37,89 @@ function loadImageAsBase64(imagePath) {
   return imageBuffer.toString("base64");
 }
 
+// 숫자 문자열에서 숫자만 추출
+function parsePrice(value) {
+  if (value === null || value === undefined || value === 'N/A') return null;
+  const str = String(value).replace(/[^0-9.-]/g, '');
+  const num = parseFloat(str);
+  return isNaN(num) ? null : num;
+}
+
+// 추출된 데이터의 논리적 일관성 검증
+function validateExtractedData(data, stockName) {
+  const warnings = [];
+
+  const currentPrice = parsePrice(data.currentPrice);
+  const prevClose = parsePrice(data.prevClose);
+  const openPrice = parsePrice(data.openPrice);
+  const highPrice = parsePrice(data.highPrice);
+  const lowPrice = parsePrice(data.lowPrice);
+
+  // 시가와 전일이 동일한 경우 경고 (다를 수 있음)
+  if (openPrice !== null && prevClose !== null && openPrice === prevClose) {
+    warnings.push(`시가(${openPrice})와 전일(${prevClose})이 동일함 - 확인 필요`);
+  }
+
+  // 고가 >= 시가 검증
+  if (highPrice !== null && openPrice !== null && highPrice < openPrice) {
+    warnings.push(`고가(${highPrice}) < 시가(${openPrice}) - 비정상적인 데이터`);
+  }
+
+  // 저가 <= 시가 검증
+  if (lowPrice !== null && openPrice !== null && lowPrice > openPrice) {
+    warnings.push(`저가(${lowPrice}) > 시가(${openPrice}) - 비정상적인 데이터`);
+  }
+
+  // 고가 >= 저가 검증
+  if (highPrice !== null && lowPrice !== null && highPrice < lowPrice) {
+    warnings.push(`고가(${highPrice}) < 저가(${lowPrice}) - 비정상적인 데이터`);
+  }
+
+  // 현재가가 고가/저가 범위 내인지 검증
+  if (currentPrice !== null && highPrice !== null && currentPrice > highPrice) {
+    warnings.push(`현재가(${currentPrice}) > 고가(${highPrice}) - 비정상적인 데이터`);
+  }
+
+  if (currentPrice !== null && lowPrice !== null && currentPrice < lowPrice) {
+    warnings.push(`현재가(${currentPrice}) < 저가(${lowPrice}) - 비정상적인 데이터`);
+  }
+
+  if (warnings.length > 0) {
+    console.warn(`[${stockName}] 데이터 검증 경고:`);
+    warnings.forEach(w => console.warn(`  - ${w}`));
+  }
+
+  return warnings;
+}
+
 function buildSingleStockPrompt(stock) {
   return `[Role] 당신은 전문 ETF/주식 분석가이자 데이터 추출 전문가입니다.
 
 [Task]
 이 이미지는 "${stock.name}" (종목코드: ${stock.code})의 네이버 증권 상세 페이지입니다.
 
-**[매우 중요] 숫자 추출 시 주의사항:**
-- 이미지 상단 왼쪽에 크게 표시된 숫자가 "현재가"입니다
-- 숫자를 한 글자씩 정확히 읽으세요
-- 쉼표(,)의 위치를 확인하여 자릿수를 정확히 파악하세요
-- 첫 번째 숫자를 절대 누락하지 마세요
-- 이미지에서 보이는 모든 데이터를 빠짐없이 추출하세요
+**[매우 중요] 테이블 데이터 추출 시 주의사항:**
+
+1. **레이블-값 매핑 필수**: 테이블에서 각 레이블(예: "전일", "시가", "고가") 바로 옆 또는 아래에 있는 숫자가 해당 레이블의 값입니다.
+   - "전일" 옆의 숫자 → prevClose
+   - "시가" 옆의 숫자 → openPrice
+   - "고가" 옆의 숫자 → highPrice
+   - "저가" 옆의 숫자 → lowPrice
+
+2. **테이블 레이아웃 구조**: 네이버 증권의 가격 정보 테이블은 다음과 같이 구성됩니다:
+   | 전일 [값1] | 시가 [값2] | 고가 [값3] |
+   | 저가 [값4] | 거래량 [값5] | 대금 [값6] |
+   각 레이블 바로 옆의 숫자만 해당 필드에 할당하세요.
+
+3. **숫자 추출 주의사항:**
+   - 숫자를 한 글자씩 정확히 읽으세요
+   - 쉼표(,)의 위치를 확인하여 자릿수를 정확히 파악하세요
+   - 첫 번째 숫자를 절대 누락하지 마세요
+
+4. **논리적 검증**: 추출 후 다음을 반드시 확인하세요:
+   - 저가 ≤ 시가 ≤ 고가 (일반적인 경우)
+   - 저가 ≤ 현재가 ≤ 고가
+   - 전일과 시가는 다른 값일 수 있습니다 (동일하지 않을 수 있음)
 
 **[추출할 데이터 목록]**
 이미지에서 다음 항목들을 모두 찾아 정확히 추출하세요:
@@ -57,10 +128,10 @@ function buildSingleStockPrompt(stock) {
    - 현재가 (currentPrice) - 페이지 상단의 가장 큰 숫자
    - 전일 대비 변동금액 (priceChange)
    - 등락률 (changePercent)
-   - 전일 종가 (prevClose)
-   - 시가 (openPrice)
-   - 고가 (highPrice)
-   - 저가 (lowPrice)
+   - 전일 종가 (prevClose) - "전일" 레이블 옆의 값
+   - 시가 (openPrice) - "시가" 레이블 옆의 값 (전일과 다를 수 있음!)
+   - 고가 (highPrice) - "고가" 레이블 옆의 값
+   - 저가 (lowPrice) - "저가" 레이블 옆의 값
 
 2. 거래 정보:
    - 거래량 (volume)
@@ -257,6 +328,15 @@ async function analyzeSingleStock(stock, apiKeyIndex = 0) {
     console.log(
       `[${stock.name}] Done - Price: ${result.extracted_data?.currentPrice}`,
     );
+
+    // 추출된 데이터 검증
+    if (result.extracted_data) {
+      const warnings = validateExtractedData(result.extracted_data, stock.name);
+      if (warnings.length > 0) {
+        result.dataValidationWarnings = warnings;
+      }
+    }
+
     return result;
   } catch (e) {
     console.error(`[${stock.name}] Failed to parse JSON:`, e.message);
