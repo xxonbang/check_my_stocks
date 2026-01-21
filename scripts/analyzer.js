@@ -11,14 +11,15 @@ const STOCKS_PATH = path.join(ROOT_DIR, 'data', 'stocks.json');
 const SCREENSHOTS_DIR = path.join(ROOT_DIR, 'public', 'screenshots');
 const RESULTS_PATH = path.join(ROOT_DIR, 'data', 'analysis_results.json');
 
-// 두 개의 API 키 지원 (fallback 방식)
+// 세 개의 API 키 지원 (fallback 방식)
 const API_KEYS = [
   process.env.GEMINI_API_KEY_01,
   process.env.GEMINI_API_KEY_02,
+  process.env.GEMINI_API_KEY_03,
 ].filter(Boolean);
 
 if (API_KEYS.length === 0) {
-  console.error('Error: No GEMINI_API_KEY_01 or GEMINI_API_KEY_02 environment variable is set');
+  console.error('Error: No GEMINI_API_KEY_01, GEMINI_API_KEY_02, or GEMINI_API_KEY_03 environment variable is set');
   process.exit(1);
 }
 
