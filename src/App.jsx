@@ -1,15 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BarChart3, LogIn, LogOut, RefreshCw } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import StockDetail from '@/components/StockDetail';
-import AdminPanel from '@/components/AdminPanel';
+import LoginModal from '@/components/LoginModal';
+
+const ADMIN_ID = 'xxonbang';
+const ADMIN_PW = '11223344';
+const GITHUB_REPO = 'xxonbang/check_my_stocks';
 
 function App() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedStock, setSelectedStock] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(() => {
+    return localStorage.getItem('isAdmin') === 'true';
+  });
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisMessage, setAnalysisMessage] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,6 +44,58 @@ function App() {
     fetchData();
   }, []);
 
+  const handleLogin = (id, pw) => {
+    if (id === ADMIN_ID && pw === ADMIN_PW) {
+      localStorage.setItem('isAdmin', 'true');
+      setIsAdmin(true);
+      setShowLoginModal(false);
+      return true;
+    }
+    return false;
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAdmin');
+    setIsAdmin(false);
+  };
+
+  const triggerAnalysis = async () => {
+    const token = prompt('GitHub Personal Access Token을 입력하세요:');
+    if (!token) return;
+
+    setIsAnalyzing(true);
+    setAnalysisMessage('');
+
+    try {
+      const response = await fetch(
+        `https://api.github.com/repos/${GITHUB_REPO}/dispatches`,
+        {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+            'Authorization': `token ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            event_type: 'manual_analysis',
+          }),
+        }
+      );
+
+      if (response.status === 204) {
+        setAnalysisMessage('분석이 시작되었습니다.');
+        setTimeout(() => setAnalysisMessage(''), 5000);
+      } else {
+        throw new Error(`GitHub API error: ${response.status}`);
+      }
+    } catch (error) {
+      setAnalysisMessage(`오류: ${error.message}`);
+      setTimeout(() => setAnalysisMessage(''), 5000);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -48,10 +111,41 @@ function App() {
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-8 h-8 text-primary" />
-            <h1 className="text-2xl font-bold">Check My Stocks</h1>
-            <span className="text-sm text-muted-foreground ml-2">AI 주식 분석</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-8 h-8 text-primary" />
+              <h1 className="text-2xl font-bold">Check My Stocks</h1>
+              <span className="text-sm text-muted-foreground ml-2">AI ETF 분석</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {analysisMessage && (
+                <span className={`text-sm ${analysisMessage.includes('오류') ? 'text-red-500' : 'text-green-500'}`}>
+                  {analysisMessage}
+                </span>
+              )}
+              {isAdmin ? (
+                <>
+                  <Button
+                    onClick={triggerAnalysis}
+                    disabled={isAnalyzing}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                    {isAnalyzing ? '분석 중...' : '수동 분석'}
+                  </Button>
+                  <Button onClick={handleLogout} size="sm" variant="ghost">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    로그아웃
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={() => setShowLoginModal(true)} size="sm" variant="outline">
+                  <LogIn className="w-4 h-4 mr-2" />
+                  로그인
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -92,18 +186,23 @@ function App() {
                 ))}
               </Tabs>
             )}
-
-            <AdminPanel />
           </>
         )}
       </main>
 
       <footer className="border-t bg-white mt-12">
         <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-          <p>Powered by Google Gemini 1.5 Flash</p>
+          <p>Powered by Google Gemini 2.5 Flash</p>
           <p className="mt-1">Data is updated 3 times daily via GitHub Actions</p>
         </div>
       </footer>
+
+      {showLoginModal && (
+        <LoginModal
+          onLogin={handleLogin}
+          onClose={() => setShowLoginModal(false)}
+        />
+      )}
     </div>
   );
 }
