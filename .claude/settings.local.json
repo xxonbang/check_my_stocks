@@ -11,7 +11,8 @@
       "Bash(curl:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(GEMINI_API_KEY_01=AIzaSyBAFnMnXEDek0IMTTdFMUNg0JNNy9kUHgk GEMINI_API_KEY_02=AIzaSyBE3YZeamT67NTgheauUEK8k2ssMrrPkIw GEMINI_API_KEY_03=AIzaSyA2X4K6OwSJIbDASGR6VrdKN1ADmCDW29s npm run analyze:*)"
     ]
   }
 }

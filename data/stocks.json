@@ -1,16 +1,32 @@
 {
   "stocks": [
     {
-      "code": "005930",
-      "name": "삼성전자"
+      "code": "379810",
+      "name": "KODEX 미국나스닥100"
     },
     {
-      "code": "000660",
-      "name": "SK하이닉스"
+      "code": "390390",
+      "name": "KODEX 미국반도체"
     },
     {
-      "code": "035720",
-      "name": "카카오"
+      "code": "465580",
+      "name": "KODEX 미국빅테크TOP7Plus"
+    },
+    {
+      "code": "360200",
+      "name": "ACE 미국S&P500"
+    },
+    {
+      "code": "487230",
+      "name": "KODEX 미국AI전력핵심인프라"
+    },
+    {
+      "code": "411060",
+      "name": "ACE KRX금현물"
+    },
+    {
+      "code": "438080",
+      "name": "ACE 미국S&P500미국채혼합50"
     }
   ]
 }

@@ -1,15 +1,15 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ROOT_DIR = path.resolve(__dirname, '..');
+const ROOT_DIR = path.resolve(__dirname, "..");
 
-const STOCKS_PATH = path.join(ROOT_DIR, 'data', 'stocks.json');
-const SCREENSHOTS_DIR = path.join(ROOT_DIR, 'public', 'screenshots');
-const RESULTS_PATH = path.join(ROOT_DIR, 'data', 'analysis_results.json');
+const STOCKS_PATH = path.join(ROOT_DIR, "data", "stocks.json");
+const SCREENSHOTS_DIR = path.join(ROOT_DIR, "public", "screenshots");
+const RESULTS_PATH = path.join(ROOT_DIR, "data", "analysis_results.json");
 
 // 세 개의 API 키 지원 (fallback 방식)
 const API_KEYS = [
@@ -19,24 +19,26 @@ const API_KEYS = [
 ].filter(Boolean);
 
 if (API_KEYS.length === 0) {
-  console.error('Error: No GEMINI_API_KEY_01, GEMINI_API_KEY_02, or GEMINI_API_KEY_03 environment variable is set');
+  console.error(
+    "Error: No GEMINI_API_KEY_01, GEMINI_API_KEY_02, or GEMINI_API_KEY_03 environment variable is set",
+  );
   process.exit(1);
 }
 
 console.log(`Loaded ${API_KEYS.length} API key(s)`);
 
 function loadStocks() {
-  const data = fs.readFileSync(STOCKS_PATH, 'utf-8');
+  const data = fs.readFileSync(STOCKS_PATH, "utf-8");
   return JSON.parse(data).stocks;
 }
 
 function loadImageAsBase64(imagePath) {
   const imageBuffer = fs.readFileSync(imagePath);
-  return imageBuffer.toString('base64');
+  return imageBuffer.toString("base64");
 }
 
 function buildSingleStockPrompt(stock) {
-  return `[Role] 당신은 전문 주식 분석가이자 데이터 추출 전문가입니다.
+  return `[Role] 당신은 전문 ETF/주식 분석가이자 데이터 추출 전문가입니다.
 
 [Task]
 이 이미지는 "${stock.name}" (종목코드: ${stock.code})의 네이버 증권 상세 페이지입니다.
@@ -45,26 +47,83 @@ function buildSingleStockPrompt(stock) {
 - 이미지 상단 왼쪽에 크게 표시된 숫자가 "현재가"입니다
 - 숫자를 한 글자씩 정확히 읽으세요
 - 쉼표(,)의 위치를 확인하여 자릿수를 정확히 파악하세요
-- 예시: "740,000"은 74만원, "149,500"은 14만 9천 5백원입니다
 - 첫 번째 숫자를 절대 누락하지 마세요
-- 한국 대형주(삼성전자, SK하이닉스 등)는 10만원~100만원대일 수 있습니다
+- 이미지에서 보이는 모든 데이터를 빠짐없이 추출하세요
 
-다음 데이터를 정확히 추출하세요:
-- 현재가 (currentPrice) - 페이지 상단의 가장 큰 숫자, 쉼표 포함하여 정확히
-- 전일 대비 변동금액 (priceChange)
-- 등락률 (changePercent)
-- 거래량 (volume)
-- 시가총액 (marketCap)
-- PER
-- PBR
-- 52주 최고가 (high52week)
-- 52주 최저가 (low52week)
-- 외국인 보유율 (foreignOwnership) - 있는 경우
+**[추출할 데이터 목록]**
+이미지에서 다음 항목들을 모두 찾아 정확히 추출하세요:
 
-현재 시장 상황과 차트 패턴을 분석하여 AI 전망 리포트를 작성하세요:
-- 기술적 분석 관점의 의견
-- 단기 전망 (1주일)
-- 투자 시 유의사항
+1. 가격 정보:
+   - 현재가 (currentPrice) - 페이지 상단의 가장 큰 숫자
+   - 전일 대비 변동금액 (priceChange)
+   - 등락률 (changePercent)
+   - 전일 종가 (prevClose)
+   - 시가 (openPrice)
+   - 고가 (highPrice)
+   - 저가 (lowPrice)
+
+2. 거래 정보:
+   - 거래량 (volume)
+   - 거래대금 (tradingValue)
+
+3. 52주 정보:
+   - 52주 최고 (high52week)
+   - 52주 최저 (low52week)
+
+4. ETF 핵심 지표:
+   - iNAV (inav) - 실시간 추정 순자산가치
+   - NAV (nav) - 순자산가치
+   - 괴리율 (premiumDiscount)
+   - 시가총액 (marketCap)
+   - 운용자산(AUM) (aum)
+   - 총보수 (expenseRatio)
+   - 배당수익률 (dividendYield)
+
+5. 수익률 정보:
+   - 1개월 수익률 (return1m)
+   - 3개월 수익률 (return3m)
+   - 1년 수익률 (return1y)
+
+6. 투자자별 매매동향 (investorTrend):
+   - 개인, 외국인, 기관 순매수/순매도 현황
+
+**[리포트 작성 지침]**
+추출한 모든 데이터를 기반으로 종합적인 AI 분석 리포트를 작성하세요:
+
+[분석에 반드시 포함할 내용]
+- 일봉 차트 패턴 분석 (이미지에서 확인되는 추세, 지지/저항선, 패턴)
+- NAV 대비 괴리율 분석 (프리미엄/디스카운트 상태)
+- 수익률 추이 분석 (1개월/3개월/1년 수익률 비교)
+- 투자자별 매매동향 해석 (수급 분석)
+- 거래량/거래대금 분석
+
+[리포트 포맷 - 마크다운 형식]
+## 기술적 분석
+(차트 패턴, 이동평균선, 지지/저항선 분석)
+
+## 펀더멘털 분석
+(NAV, 괴리율, 운용자산, 총보수 기반 분석)
+
+## 수익률 분석
+(1개월/3개월/1년 수익률 트렌드)
+
+## 수급 분석
+(투자자별 매매동향 해석)
+
+## 단기 전망 (1주일)
+(구체적인 예상 가격대 및 근거)
+
+## 장기 전망 (1개월 이상)
+(추세 전망 및 목표가)
+
+## 긍정적 요인
+(상승 모멘텀)
+
+## 부정적 요인
+(리스크 요소)
+
+## 투자 시 유의사항
+(투자 전략 및 주의점)
 
 결과는 아래 JSON 구조로 출력하세요. JSON만 출력하고 다른 텍스트는 포함하지 마세요:
 
@@ -72,16 +131,32 @@ function buildSingleStockPrompt(stock) {
   "code": "${stock.code}",
   "name": "${stock.name}",
   "extracted_data": {
-    "currentPrice": "현재가 (예: 740,000)",
+    "currentPrice": "현재가",
     "priceChange": "변동금액",
     "changePercent": "등락률",
+    "prevClose": "전일",
+    "openPrice": "시가",
+    "highPrice": "고가",
+    "lowPrice": "저가",
     "volume": "거래량",
-    "marketCap": "시가총액",
-    "per": "PER",
-    "pbr": "PBR",
+    "tradingValue": "거래대금",
     "high52week": "52주 최고",
     "low52week": "52주 최저",
-    "foreignOwnership": "외국인 보유율"
+    "inav": "iNAV",
+    "nav": "NAV",
+    "premiumDiscount": "괴리율",
+    "marketCap": "시가총액",
+    "aum": "운용자산",
+    "expenseRatio": "총보수",
+    "dividendYield": "배당수익률",
+    "return1m": "1개월 수익률",
+    "return3m": "3개월 수익률",
+    "return1y": "1년 수익률",
+    "investorTrend": {
+      "individual": "개인 순매수/순매도",
+      "foreign": "외국인 순매수/순매도",
+      "institution": "기관 순매수/순매도"
+    }
   },
   "ai_report": "AI 분석 리포트 내용 (마크다운 형식)",
   "prediction": "Bullish/Bearish/Neutral"
@@ -93,12 +168,12 @@ async function analyzeWithKey(apiKey, keyIndex, prompt, imageParts) {
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
+    model: "gemini-2.5-flash",
     generationConfig: {
       temperature: 0.2,
       topK: 40,
       topP: 0.95,
-      maxOutputTokens: 8192,
+      maxOutputTokens: 16384,
     },
   });
 
@@ -118,7 +193,7 @@ async function analyzeSingleStock(stock, apiKeyIndex = 0) {
   const imageBase64 = loadImageAsBase64(imagePath);
   const imagePart = {
     inlineData: {
-      mimeType: 'image/png',
+      mimeType: "image/png",
       data: imageBase64,
     },
   };
@@ -135,7 +210,9 @@ async function analyzeSingleStock(stock, apiKeyIndex = 0) {
       text = await analyzeWithKey(API_KEYS[i], i, prompt, [imagePart]);
       break;
     } catch (error) {
-      console.error(`[${stock.name}] API key #${i + 1} failed: ${error.message}`);
+      console.error(
+        `[${stock.name}] API key #${i + 1} failed: ${error.message}`,
+      );
       lastError = error;
     }
   }
@@ -154,7 +231,9 @@ async function analyzeSingleStock(stock, apiKeyIndex = 0) {
 
   try {
     const result = JSON.parse(jsonStr);
-    console.log(`[${stock.name}] Done - Price: ${result.extracted_data?.currentPrice}`);
+    console.log(
+      `[${stock.name}] Done - Price: ${result.extracted_data?.currentPrice}`,
+    );
     return result;
   } catch (e) {
     console.error(`[${stock.name}] Failed to parse JSON:`, e.message);
@@ -163,7 +242,9 @@ async function analyzeSingleStock(stock, apiKeyIndex = 0) {
 }
 
 async function analyzeStocks(stocks) {
-  console.log(`\nAnalyzing ${stocks.length} stocks individually with Gemini 2.5 Flash...`);
+  console.log(
+    `\nAnalyzing ${stocks.length} stocks individually with Gemini 2.5 Flash...`,
+  );
 
   const results = [];
 
@@ -173,14 +254,14 @@ async function analyzeStocks(stocks) {
       results.push(result);
     }
     // API 호출 간 잠시 대기 (rate limit 방지)
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
   return { stocks: results };
 }
 
 async function main() {
-  console.log('=== Stock Analyzer Started ===');
+  console.log("=== Stock Analyzer Started ===");
   console.log(`Timestamp: ${new Date().toISOString()}`);
   console.log(`Model: Gemini 2.5 Flash`);
 
@@ -199,15 +280,19 @@ async function main() {
     fs.writeFileSync(RESULTS_PATH, JSON.stringify(finalResult, null, 2));
 
     // public/data에도 복사
-    const publicDataPath = path.join(ROOT_DIR, 'public', 'data', 'analysis_results.json');
+    const publicDataPath = path.join(
+      ROOT_DIR,
+      "public",
+      "data",
+      "analysis_results.json",
+    );
     fs.writeFileSync(publicDataPath, JSON.stringify(finalResult, null, 2));
 
     console.log(`\n=== Analysis Complete ===`);
     console.log(`Results saved to: ${RESULTS_PATH}`);
     console.log(`Analyzed ${finalResult.stocks?.length || 0} stocks`);
-
   } catch (error) {
-    console.error('Analysis failed:', error.message);
+    console.error("Analysis failed:", error.message);
     process.exit(1);
   }
 }

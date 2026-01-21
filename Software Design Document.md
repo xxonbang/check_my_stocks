@@ -1,7 +1,7 @@
 📋 Project Specification: AI-Powered Stock Analysis System
 
 1. Project Overview
-   목적: Playwright 기반 스크래핑과 Google Gemini 1.5 Flash(Multimodal)를 결합하여 주식 종목을 자동 분석하고 리포트를 제공하는 대시보드 구축.
+   목적: Playwright 기반 스크래핑과 Google Gemini 2.5 Flash를 결합하여 주식 종목을 자동 분석하고 리포트를 제공하는 대시보드 구축.
    대상: 개인용 주식 포트폴리오 관리 및 AI 분석 리포트 자동 생성.
    배포 환경: GitHub Pages (static site).
    스케줄링: 하루 3회 자동 업데이트 (GitHub Actions 활용).
@@ -30,7 +30,7 @@
    4.1 스크래핑 로직 (Scraper Service)
    해상도 설정: viewport: { width: 1920, height: 2000 }, deviceScaleFactor: 2 (고선명 캡처).
    대기 전략: 네트워크 유휴 상태(networkidle)까지 대기하여 차트 및 지표 렌더링 보장.
-   4.2 AI 프롬프트 상세 (Gemini 1.5 Flash)
+   4.2 AI 프롬프트 상세 (Gemini 2.5 Flash)
    code
    Text
    [Role] 전문 주식 분석가 및 데이터 추출 전문가
