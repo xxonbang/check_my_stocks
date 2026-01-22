@@ -43,7 +43,7 @@ const OPENROUTER_MODELS = [
 // 프로바이더 상태 추적 (OCR용 Vision 프로바이더)
 const visionProviders = {
   openrouter: { name: "OpenRouter (Gemini Flash)", enabled: !!OPENROUTER_API_KEY, failed: false },
-  groq: { name: "Groq (Llama Vision)", enabled: !!GROQ_API_KEY, failed: false },
+  groq: { name: "Groq (Llama 4 Scout)", enabled: !!GROQ_API_KEY, failed: false },
   gemini: { name: "Gemini API", enabled: GEMINI_API_KEYS.length > 0, failed: false },
   cloudflare: { name: "Cloudflare (Llama Vision)", enabled: !!(CF_ACCOUNT_ID && CF_API_TOKEN), failed: false },
 };
@@ -556,11 +556,11 @@ async function callOpenRouterText(prompt) {
 // ============================================
 
 async function callOpenRouterReasoning(prompt) {
-  // 추론 모델 우선순위 (무료 모델)
+  // 추론 모델 우선순위 (2026.01 기준 무료 모델)
   const reasoningModels = [
-    "deepseek/deepseek-r1:free",
-    "qwen/qwq-32b:free",
-    "google/gemini-2.0-flash-exp:free"
+    "tngtech/deepseek-r1t2-chimera:free",  // DeepSeek R1T2 Chimera (무료, 추론 특화)
+    "tngtech/deepseek-r1t-chimera:free",   // DeepSeek R1T Chimera (무료, 백업)
+    "google/gemini-2.0-flash-exp:free"     // Gemini 2.0 Flash (무료, 최후 백업)
   ];
 
   for (const model of reasoningModels) {
@@ -599,11 +599,13 @@ async function callOpenRouterReasoning(prompt) {
 }
 
 // ============================================
-// Groq API (Vision - OCR용)
+// Groq API (Vision - OCR용, Llama 4 Scout)
 // ============================================
 
 async function callGroqVision(prompt, imageBase64) {
-  console.log("    → Groq Vision (llama-3.2-90b-vision-preview)");
+  // Llama 4 Scout: 17B active params, 460 tokens/s, 128K context
+  // Note: llama-3.2-90b-vision-preview was decommissioned in 2026
+  console.log("    → Groq Vision (Llama 4 Scout)");
 
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -612,7 +614,7 @@ async function callGroqVision(prompt, imageBase64) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "llama-3.2-90b-vision-preview",
+      model: "meta-llama/llama-4-scout-17b-16e-instruct",
       messages: [
         {
           role: "user",
