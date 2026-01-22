@@ -74,12 +74,17 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
+
+          # 원격의 최신 상태를 가져와서 그 위에 변경사항 적용
+          git fetch origin main
+          git reset --soft origin/main
+
           git add data/ public/
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
             git commit -m "Update analysis results $(date +'%Y-%m-%d %H:%M') [skip ci]"
-            git push --force-with-lease origin main
+            git push origin main
           fi
 
   build:
