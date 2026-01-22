@@ -291,7 +291,7 @@ async function analyzeSingleStock(stock, apiKeyIndex = 0) {
 
   if (!fs.existsSync(imagePath)) {
     console.log(`[${stock.name}] Screenshot not found, skipping...`);
-    return null;
+    return { result: null, successKeyIndex: apiKeyIndex };
   }
 
   const imageBase64 = loadImageAsBase64(imagePath);
@@ -303,15 +303,17 @@ async function analyzeSingleStock(stock, apiKeyIndex = 0) {
   };
 
   const prompt = buildSingleStockPrompt(stock);
-  console.log(`[${stock.name}] Analyzing...`);
+  console.log(`[${stock.name}] Analyzing with API key #${apiKeyIndex + 1}...`);
 
   let text = null;
   let lastError = null;
+  let successKeyIndex = apiKeyIndex;
 
   // API 키를 순차적으로 시도 (fallback)
   for (let i = apiKeyIndex; i < API_KEYS.length; i++) {
     try {
       text = await analyzeWithKey(API_KEYS[i], i, prompt, [imagePart]);
+      successKeyIndex = i;  // 성공한 키 인덱스 저장
       break;
     } catch (error) {
       console.error(
@@ -323,7 +325,7 @@ async function analyzeSingleStock(stock, apiKeyIndex = 0) {
 
   if (!text) {
     console.error(`[${stock.name}] All API keys failed`);
-    return null;
+    return { result: null, successKeyIndex: apiKeyIndex };
   }
 
   // JSON 추출 (코드 블록 내에 있을 수 있음)
@@ -357,7 +359,7 @@ async function analyzeSingleStock(stock, apiKeyIndex = 0) {
       result = JSON.parse(sanitizedJson);
     } catch (secondError) {
       console.error(`[${stock.name}] Failed to parse JSON:`, secondError.message);
-      return null;
+      return { result: null, successKeyIndex };
     }
   }
 
@@ -373,7 +375,7 @@ async function analyzeSingleStock(stock, apiKeyIndex = 0) {
     }
   }
 
-  return result;
+  return { result, successKeyIndex };
 }
 
 async function analyzeStocks(stocks) {
@@ -382,9 +384,17 @@ async function analyzeStocks(stocks) {
   );
 
   const results = [];
+  let currentKeyIndex = 0;  // 현재 작동하는 API 키 인덱스 추적
 
   for (const stock of stocks) {
-    const result = await analyzeSingleStock(stock);
+    const { result, successKeyIndex } = await analyzeSingleStock(stock, currentKeyIndex);
+
+    // 성공한 키 인덱스로 업데이트 (다음 종목부터 이 키로 시작)
+    if (successKeyIndex !== currentKeyIndex) {
+      console.log(`Switching to API key #${successKeyIndex + 1} for subsequent requests`);
+      currentKeyIndex = successKeyIndex;
+    }
+
     if (result) {
       results.push(result);
     }
