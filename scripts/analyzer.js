@@ -333,25 +333,47 @@ async function analyzeSingleStock(stock, apiKeyIndex = 0) {
     jsonStr = jsonMatch[1].trim();
   }
 
-  try {
-    const result = JSON.parse(jsonStr);
-    console.log(
-      `[${stock.name}] Done - Price: ${result.extracted_data?.currentPrice}`,
-    );
-
-    // 추출된 데이터 검증
-    if (result.extracted_data) {
-      const warnings = validateExtractedData(result.extracted_data, stock.name);
-      if (warnings.length > 0) {
-        result.dataValidationWarnings = warnings;
-      }
-    }
-
-    return result;
-  } catch (e) {
-    console.error(`[${stock.name}] Failed to parse JSON:`, e.message);
-    return null;
+  // JSON 문자열 내 제어 문자 정리 (파싱 오류 방지)
+  function sanitizeJsonString(str) {
+    // JSON 문자열 값 내부의 이스케이프되지 않은 제어 문자를 처리
+    return str.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match, content) => {
+      const sanitized = content
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t')
+        .replace(/[\x00-\x1F\x7F]/g, '');
+      return `"${sanitized}"`;
+    });
   }
+
+  let result;
+  try {
+    result = JSON.parse(jsonStr);
+  } catch (firstError) {
+    // 첫 번째 시도 실패 시 제어 문자 정리 후 재시도
+    console.log(`[${stock.name}] First JSON parse failed, sanitizing...`);
+    try {
+      const sanitizedJson = sanitizeJsonString(jsonStr);
+      result = JSON.parse(sanitizedJson);
+    } catch (secondError) {
+      console.error(`[${stock.name}] Failed to parse JSON:`, secondError.message);
+      return null;
+    }
+  }
+
+  console.log(
+    `[${stock.name}] Done - Price: ${result.extracted_data?.currentPrice}`,
+  );
+
+  // 추출된 데이터 검증
+  if (result.extracted_data) {
+    const warnings = validateExtractedData(result.extracted_data, stock.name);
+    if (warnings.length > 0) {
+      result.dataValidationWarnings = warnings;
+    }
+  }
+
+  return result;
 }
 
 async function analyzeStocks(stocks) {
