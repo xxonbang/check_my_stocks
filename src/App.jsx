@@ -59,41 +59,12 @@ function App() {
     setIsAdmin(false);
   };
 
-  const triggerAnalysis = async () => {
-    const token = prompt('GitHub Personal Access Token을 입력하세요:');
-    if (!token) return;
-
-    setIsAnalyzing(true);
-    setAnalysisMessage('');
-
-    try {
-      const response = await fetch(
-        `https://api.github.com/repos/${GITHUB_REPO}/dispatches`,
-        {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/vnd.github.v3+json',
-            'Authorization': `token ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            event_type: 'manual_analysis',
-          }),
-        }
-      );
-
-      if (response.status === 204) {
-        setAnalysisMessage('분석이 시작되었습니다.');
-        setTimeout(() => setAnalysisMessage(''), 5000);
-      } else {
-        throw new Error(`GitHub API error: ${response.status}`);
-      }
-    } catch (error) {
-      setAnalysisMessage(`오류: ${error.message}`);
-      setTimeout(() => setAnalysisMessage(''), 5000);
-    } finally {
-      setIsAnalyzing(false);
-    }
+  const triggerAnalysis = () => {
+    // GitHub Actions workflow_dispatch 페이지로 이동
+    const workflowUrl = `https://github.com/${GITHUB_REPO}/actions/workflows/daily_analysis.yml`;
+    window.open(workflowUrl, '_blank');
+    setAnalysisMessage('GitHub Actions 페이지에서 "Run workflow" 버튼을 클릭하세요.');
+    setTimeout(() => setAnalysisMessage(''), 8000);
   };
 
   if (loading) {
