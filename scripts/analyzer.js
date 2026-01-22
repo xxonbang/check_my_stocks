@@ -84,6 +84,28 @@ Object.entries(reasoningProviders).forEach(([key, p]) => {
 });
 
 // ============================================
+// 지원종료 예정 모델 경고 및 Fallback 준비 상태 확인
+// ============================================
+const enabledVisionProviders = Object.entries(visionProviders).filter(([_, p]) => p.enabled);
+const hasVisionFallback = enabledVisionProviders.length > 1;
+
+console.log("\n=== Deprecation Warning ===");
+console.log("⚠ OpenRouter's google/gemini-2.0-flash-exp:free is scheduled for deprecation on 2026-02-06");
+
+if (visionProviders.openrouter.enabled && !hasVisionFallback) {
+  console.warn("⚠ [CRITICAL] OpenRouter is the ONLY enabled Vision provider!");
+  console.warn("  → After 2026-02-06, OCR will fail without backup providers.");
+  console.warn("  → Recommend: Enable GROQ_API_KEY or GEMINI_API_KEY for fallback.");
+} else if (hasVisionFallback) {
+  const fallbackNames = enabledVisionProviders
+    .filter(([key, _]) => key !== "openrouter")
+    .map(([_, p]) => p.name);
+  console.log(`✓ Fallback providers ready: ${fallbackNames.join(", ")}`);
+} else {
+  console.warn("⚠ No Vision providers enabled. OCR will fail.");
+}
+
+// ============================================
 // 유틸리티 함수
 // ============================================
 
@@ -143,6 +165,41 @@ function validateExtractedData(data, stockName) {
   }
 
   return warnings;
+}
+
+// 프로바이더 실패 여부 판단 (세션 내 비활성화 조건)
+function shouldMarkProviderFailed(error) {
+  const errorMsg = error.message.toLowerCase();
+  return (
+    // Rate Limit / 서비스 불가
+    error.message.includes("429") ||
+    error.message.includes("503") ||
+    // 모델 지원종료 / 삭제 (404, 410)
+    error.message.includes("404") ||
+    error.message.includes("410") ||
+    // 명시적 지원종료 메시지
+    errorMsg.includes("deprecated") ||
+    errorMsg.includes("discontinued") ||
+    errorMsg.includes("not found") ||
+    errorMsg.includes("does not exist") ||
+    errorMsg.includes("no longer available") ||
+    errorMsg.includes("has been removed") ||
+    // 키 소진
+    error.message.includes("exhausted")
+  );
+}
+
+// 지원종료 관련 에러인지 확인
+function isDeprecationError(error) {
+  const errorMsg = error.message.toLowerCase();
+  return (
+    error.message.includes("404") ||
+    error.message.includes("410") ||
+    errorMsg.includes("deprecated") ||
+    errorMsg.includes("discontinued") ||
+    errorMsg.includes("no longer available") ||
+    errorMsg.includes("has been removed")
+  );
 }
 
 function sanitizeJsonString(str) {
@@ -772,9 +829,14 @@ async function extractDataWithVision(prompt, imageBase64, stockName) {
     } catch (error) {
       console.error(`  ✗ ${provider.name} failed: ${error.message}`);
 
-      if (error.message.includes("429") || error.message.includes("503") || error.message.includes("exhausted")) {
+      if (shouldMarkProviderFailed(error)) {
         provider.failed = true;
         console.log(`  ⚠ ${provider.name} marked as failed for this session`);
+
+        if (isDeprecationError(error)) {
+          console.warn(`  ⚠ [DEPRECATION WARNING] ${provider.name} model may be deprecated or removed.`);
+          console.warn(`    → Automatic fallback to other providers activated.`);
+        }
       }
     }
   }
@@ -828,9 +890,13 @@ async function generateReportWithText(prompt, stockName) {
     } catch (error) {
       console.error(`  ✗ ${provider.name} failed: ${error.message}`);
 
-      if (error.message.includes("429") || error.message.includes("503") || error.message.includes("exhausted")) {
+      if (shouldMarkProviderFailed(error)) {
         provider.failed = true;
         console.log(`  ⚠ ${provider.name} marked as failed for this session`);
+
+        if (isDeprecationError(error)) {
+          console.warn(`  ⚠ [DEPRECATION WARNING] ${provider.name} model may be deprecated or removed.`);
+        }
       }
     }
   }
@@ -882,9 +948,13 @@ async function generatePredictionWithReasoning(prompt, stockName) {
     } catch (error) {
       console.error(`  ✗ ${provider.name} failed: ${error.message}`);
 
-      if (error.message.includes("429") || error.message.includes("503") || error.message.includes("exhausted")) {
+      if (shouldMarkProviderFailed(error)) {
         provider.failed = true;
         console.log(`  ⚠ ${provider.name} marked as failed for this session`);
+
+        if (isDeprecationError(error)) {
+          console.warn(`  ⚠ [DEPRECATION WARNING] ${provider.name} model may be deprecated or removed.`);
+        }
       }
     }
   }
