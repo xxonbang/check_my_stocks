@@ -32,9 +32,11 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
 const CF_API_TOKEN = process.env.CF_API_TOKEN;
 
-// OpenRouter 모델 우선순위 (Gemini 3.0 → 2.5 → 2.0)
+// OpenRouter 무료 Vision 모델 (2026.01 기준)
+// - Gemini 3.0 Flash: 유료 ($0.50/M 입력)
+// - Gemini 2.5 Flash: 유료 ($0.30/M 입력)
+// - Gemini 2.0 Flash Exp: 무료 (2026.02.06 지원종료 예정)
 const OPENROUTER_MODELS = [
-  "google/gemini-2.5-flash:free",
   "google/gemini-2.0-flash-exp:free",
 ];
 
@@ -476,7 +478,7 @@ async function callOpenRouterText(prompt) {
       "X-Title": "Check My Stocks"
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash:free",
+      model: "google/gemini-2.0-flash-exp:free",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 8192,
       temperature: 0.3
@@ -497,11 +499,11 @@ async function callOpenRouterText(prompt) {
 // ============================================
 
 async function callOpenRouterReasoning(prompt) {
-  // DeepSeek-R1 무료 모델 시도
+  // 추론 모델 우선순위 (무료 모델)
   const reasoningModels = [
     "deepseek/deepseek-r1:free",
     "qwen/qwq-32b:free",
-    "google/gemini-2.5-flash:free"
+    "google/gemini-2.0-flash-exp:free"
   ];
 
   for (const model of reasoningModels) {
