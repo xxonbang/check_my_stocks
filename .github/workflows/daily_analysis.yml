@@ -69,7 +69,8 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add data/ public/
           git diff --staged --quiet || git commit -m "Update analysis results $(date +'%Y-%m-%d %H:%M')"
-          git push
+          git pull --rebase origin main || true
+          git push origin main
 
   build:
     runs-on: ubuntu-latest
