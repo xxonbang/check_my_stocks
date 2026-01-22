@@ -57,9 +57,17 @@ jobs:
 
       - name: Run AI analysis
         env:
+          # Gemini API (기존)
           GEMINI_API_KEY_01: ${{ secrets.GEMINI_API_KEY_01 }}
           GEMINI_API_KEY_02: ${{ secrets.GEMINI_API_KEY_02 }}
           GEMINI_API_KEY_03: ${{ secrets.GEMINI_API_KEY_03 }}
+          # OpenRouter API (Gemini Flash:free)
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          # Groq API (Llama 3.3 Vision)
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          # Cloudflare Workers AI
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: npm run analyze
 
       - name: Copy data to public folder

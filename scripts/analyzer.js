@@ -11,21 +11,43 @@ const STOCKS_PATH = path.join(ROOT_DIR, "data", "stocks.json");
 const SCREENSHOTS_DIR = path.join(ROOT_DIR, "public", "screenshots");
 const RESULTS_PATH = path.join(ROOT_DIR, "data", "analysis_results.json");
 
-// 세 개의 API 키 지원 (fallback 방식)
-const API_KEYS = [
+// ============================================
+// 멀티 프로바이더 설정
+// ============================================
+
+// Provider 1: Gemini API (기존)
+const GEMINI_API_KEYS = [
   process.env.GEMINI_API_KEY_01,
   process.env.GEMINI_API_KEY_02,
   process.env.GEMINI_API_KEY_03,
 ].filter(Boolean);
 
-if (API_KEYS.length === 0) {
-  console.error(
-    "Error: No GEMINI_API_KEY_01, GEMINI_API_KEY_02, or GEMINI_API_KEY_03 environment variable is set",
-  );
-  process.exit(1);
-}
+// Provider 2: OpenRouter API (Gemini 3 Flash:free)
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
-console.log(`Loaded ${API_KEYS.length} API key(s)`);
+// Provider 3: Groq API (Llama 3.3)
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+
+// Provider 4: Cloudflare Workers AI
+const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
+const CF_API_TOKEN = process.env.CF_API_TOKEN;
+
+// 프로바이더 우선순위 및 상태 추적
+const providers = {
+  openrouter: { name: "OpenRouter (Gemini Flash)", enabled: !!OPENROUTER_API_KEY, failed: false },
+  gemini: { name: "Gemini API", enabled: GEMINI_API_KEYS.length > 0, failed: false },
+  groq: { name: "Groq (Llama 3.3)", enabled: !!GROQ_API_KEY, failed: false },
+  cloudflare: { name: "Cloudflare (Llama 3.2 Vision)", enabled: !!(CF_ACCOUNT_ID && CF_API_TOKEN), failed: false },
+};
+
+// 현재 작동 중인 프로바이더
+let currentProvider = null;
+let currentGeminiKeyIndex = 0;
+
+console.log("=== Provider Status ===");
+Object.entries(providers).forEach(([key, p]) => {
+  console.log(`${p.name}: ${p.enabled ? "✓ Enabled" : "✗ Disabled"}`);
+});
 
 function loadStocks() {
   const data = fs.readFileSync(STOCKS_PATH, "utf-8");
@@ -55,41 +77,28 @@ function validateExtractedData(data, stockName) {
   const highPrice = parsePrice(data.highPrice);
   const lowPrice = parsePrice(data.lowPrice);
 
-  // 시가와 전일이 동일한 경우 경고 (다를 수 있음)
   if (openPrice !== null && prevClose !== null && openPrice === prevClose) {
-    warnings.push(
-      `시가(${openPrice})와 전일(${prevClose})이 동일함 - 확인 필요`,
-    );
+    warnings.push(`시가(${openPrice})와 전일(${prevClose})이 동일함 - 확인 필요`);
   }
 
-  // 고가 >= 시가 검증
   if (highPrice !== null && openPrice !== null && highPrice < openPrice) {
-    warnings.push(
-      `고가(${highPrice}) < 시가(${openPrice}) - 비정상적인 데이터`,
-    );
+    warnings.push(`고가(${highPrice}) < 시가(${openPrice}) - 비정상적인 데이터`);
   }
 
-  // 저가 <= 시가 검증
   if (lowPrice !== null && openPrice !== null && lowPrice > openPrice) {
     warnings.push(`저가(${lowPrice}) > 시가(${openPrice}) - 비정상적인 데이터`);
   }
 
-  // 고가 >= 저가 검증
   if (highPrice !== null && lowPrice !== null && highPrice < lowPrice) {
     warnings.push(`고가(${highPrice}) < 저가(${lowPrice}) - 비정상적인 데이터`);
   }
 
-  // 현재가가 고가/저가 범위 내인지 검증
   if (currentPrice !== null && highPrice !== null && currentPrice > highPrice) {
-    warnings.push(
-      `현재가(${currentPrice}) > 고가(${highPrice}) - 비정상적인 데이터`,
-    );
+    warnings.push(`현재가(${currentPrice}) > 고가(${highPrice}) - 비정상적인 데이터`);
   }
 
   if (currentPrice !== null && lowPrice !== null && currentPrice < lowPrice) {
-    warnings.push(
-      `현재가(${currentPrice}) < 저가(${lowPrice}) - 비정상적인 데이터`,
-    );
+    warnings.push(`현재가(${currentPrice}) < 저가(${lowPrice}) - 비정상적인 데이터`);
   }
 
   if (warnings.length > 0) {
@@ -179,9 +188,7 @@ function buildSingleStockPrompt(stock) {
    - 매매 시그널 (signal): "매수", "매도", "관망" 중 하나
 
 **[리포트 작성 지침]**
-- 오늘 날짜 기준의 실시간 웹 검색(Google Search Tool 사용 권장)을 수행하여 해당 종목에 대한 최신 뉴스, 시장 동향, 경제 지표를 조사하세요
-- 수집한 최신 정보와 함께 이미지에서 추출한 데이터를 종합적으로 분석하세요
-- 추출한 모든 데이터를 기반으로 종합적인 AI 분석 리포트를 작성하세요
+추출한 모든 데이터를 기반으로 종합적인 AI 분석 리포트를 작성하세요:
 
 [분석에 반드시 포함할 내용]
 - 일봉 차트 패턴 분석 (이미지에서 확인되는 추세, 지지/저항선, 패턴)
@@ -267,148 +274,330 @@ function buildSingleStockPrompt(stock) {
 }`;
 }
 
-async function analyzeWithKey(apiKey, keyIndex, prompt, imageParts) {
-  console.log(`Trying API key #${keyIndex + 1}...`);
+// ============================================
+// Provider 1: OpenRouter API (Gemini Flash:free)
+// ============================================
+async function analyzeWithOpenRouter(prompt, imageBase64) {
+  console.log("  → Trying OpenRouter (Gemini Flash:free)...");
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    generationConfig: {
-      temperature: 0.2,
-      topK: 40,
-      topP: 0.95,
-      maxOutputTokens: 16384,
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://github.com/xxonbang/check_my_stocks",
+      "X-Title": "Check My Stocks"
     },
+    body: JSON.stringify({
+      model: "google/gemini-2.0-flash-exp:free",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/png;base64,${imageBase64}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 16384,
+      temperature: 0.2
+    })
   });
 
-  const result = await model.generateContent([prompt, ...imageParts]);
-  const response = await result.response;
-  return response.text();
-}
-
-async function analyzeSingleStock(stock, apiKeyIndex = 0) {
-  const imagePath = path.join(SCREENSHOTS_DIR, `${stock.code}.png`);
-
-  if (!fs.existsSync(imagePath)) {
-    console.log(`[${stock.name}] Screenshot not found, skipping...`);
-    return { result: null, successKeyIndex: apiKeyIndex };
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
   }
 
-  const imageBase64 = loadImageAsBase64(imagePath);
-  const imagePart = {
-    inlineData: {
-      mimeType: "image/png",
-      data: imageBase64,
-    },
-  };
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
 
-  const prompt = buildSingleStockPrompt(stock);
-  console.log(`[${stock.name}] Analyzing with API key #${apiKeyIndex + 1}...`);
+// ============================================
+// Provider 2: Gemini API (기존)
+// ============================================
+async function analyzeWithGemini(prompt, imageBase64) {
+  console.log(`  → Trying Gemini API (key #${currentGeminiKeyIndex + 1})...`);
 
-  let text = null;
-  let lastError = null;
-  let successKeyIndex = apiKeyIndex;
-
-  // API 키를 순차적으로 시도 (fallback)
-  for (let i = apiKeyIndex; i < API_KEYS.length; i++) {
+  for (let i = currentGeminiKeyIndex; i < GEMINI_API_KEYS.length; i++) {
     try {
-      text = await analyzeWithKey(API_KEYS[i], i, prompt, [imagePart]);
-      successKeyIndex = i;  // 성공한 키 인덱스 저장
-      break;
+      const genAI = new GoogleGenerativeAI(GEMINI_API_KEYS[i]);
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        generationConfig: {
+          temperature: 0.2,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 16384,
+        },
+      });
+
+      const imagePart = {
+        inlineData: {
+          mimeType: "image/png",
+          data: imageBase64,
+        },
+      };
+
+      const result = await model.generateContent([prompt, imagePart]);
+      const response = await result.response;
+      currentGeminiKeyIndex = i; // 성공한 키 기억
+      return response.text();
     } catch (error) {
-      console.error(
-        `[${stock.name}] API key #${i + 1} failed: ${error.message}`,
-      );
-      lastError = error;
+      console.log(`    Gemini key #${i + 1} failed: ${error.message}`);
+      if (i === GEMINI_API_KEYS.length - 1) {
+        throw new Error("All Gemini API keys exhausted");
+      }
+    }
+  }
+}
+
+// ============================================
+// Provider 3: Groq API (Llama 3.3 - Vision 제한적)
+// ============================================
+async function analyzeWithGroq(prompt, imageBase64) {
+  console.log("  → Trying Groq (Llama 3.3)...");
+
+  // Groq의 Vision 모델 사용 (llama-3.2-90b-vision-preview)
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "llama-3.2-90b-vision-preview",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/png;base64,${imageBase64}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 16384,
+      temperature: 0.2
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Groq API error: ${response.status} - ${error}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+// ============================================
+// Provider 4: Cloudflare Workers AI (Llama 3.2 Vision)
+// ============================================
+async function analyzeWithCloudflare(prompt, imageBase64) {
+  console.log("  → Trying Cloudflare Workers AI (Llama 3.2 Vision)...");
+
+  const response = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.2-11b-vision-instruct`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${CF_API_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        prompt: prompt,
+        image: [imageBase64],
+        max_tokens: 16384
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Cloudflare API error: ${response.status} - ${error}`);
+  }
+
+  const data = await response.json();
+
+  if (!data.success) {
+    throw new Error(`Cloudflare API error: ${JSON.stringify(data.errors)}`);
+  }
+
+  return data.result.response;
+}
+
+// ============================================
+// Circuit Breaker: 멀티 프로바이더 Fallback
+// ============================================
+async function analyzeWithFallback(prompt, imageBase64, stockName) {
+  const providerOrder = ["openrouter", "gemini", "groq", "cloudflare"];
+
+  // 현재 작동 중인 프로바이더가 있으면 먼저 시도
+  if (currentProvider && providers[currentProvider].enabled && !providers[currentProvider].failed) {
+    providerOrder.splice(providerOrder.indexOf(currentProvider), 1);
+    providerOrder.unshift(currentProvider);
+  }
+
+  for (const providerKey of providerOrder) {
+    const provider = providers[providerKey];
+
+    if (!provider.enabled || provider.failed) {
+      continue;
+    }
+
+    try {
+      let result;
+
+      switch (providerKey) {
+        case "openrouter":
+          result = await analyzeWithOpenRouter(prompt, imageBase64);
+          break;
+        case "gemini":
+          result = await analyzeWithGemini(prompt, imageBase64);
+          break;
+        case "groq":
+          result = await analyzeWithGroq(prompt, imageBase64);
+          break;
+        case "cloudflare":
+          result = await analyzeWithCloudflare(prompt, imageBase64);
+          break;
+      }
+
+      // 성공 시 현재 프로바이더로 설정
+      if (currentProvider !== providerKey) {
+        console.log(`  ✓ Switching to ${provider.name} for subsequent requests`);
+        currentProvider = providerKey;
+      }
+
+      return result;
+
+    } catch (error) {
+      console.error(`  ✗ ${provider.name} failed: ${error.message}`);
+
+      // 429 (Rate Limit) 또는 503 (Service Unavailable) 에러 시 프로바이더 비활성화
+      if (error.message.includes("429") || error.message.includes("503") || error.message.includes("exhausted")) {
+        provider.failed = true;
+        console.log(`  ⚠ ${provider.name} marked as failed for this session`);
+      }
     }
   }
 
-  if (!text) {
-    console.error(`[${stock.name}] All API keys failed`);
-    return { result: null, successKeyIndex: apiKeyIndex };
-  }
+  throw new Error(`[${stockName}] All providers failed`);
+}
 
-  // JSON 추출 (코드 블록 내에 있을 수 있음)
+// ============================================
+// JSON 파싱 및 정리
+// ============================================
+function sanitizeJsonString(str) {
+  return str.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match, content) => {
+    const sanitized = content
+      .replace(/\n/g, "\\n")
+      .replace(/\r/g, "\\r")
+      .replace(/\t/g, "\\t")
+      .replace(/[\x00-\x1F\x7F]/g, "");
+    return `"${sanitized}"`;
+  });
+}
+
+function parseJsonResponse(text, stockName) {
   let jsonStr = text;
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (jsonMatch) {
     jsonStr = jsonMatch[1].trim();
   }
 
-  // JSON 문자열 내 제어 문자 정리 (파싱 오류 방지)
-  function sanitizeJsonString(str) {
-    // JSON 문자열 값 내부의 이스케이프되지 않은 제어 문자를 처리
-    return str.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match, content) => {
-      const sanitized = content
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r')
-        .replace(/\t/g, '\\t')
-        .replace(/[\x00-\x1F\x7F]/g, '');
-      return `"${sanitized}"`;
-    });
-  }
-
-  let result;
   try {
-    result = JSON.parse(jsonStr);
+    return JSON.parse(jsonStr);
   } catch (firstError) {
-    // 첫 번째 시도 실패 시 제어 문자 정리 후 재시도
-    console.log(`[${stock.name}] First JSON parse failed, sanitizing...`);
+    console.log(`[${stockName}] First JSON parse failed, sanitizing...`);
     try {
       const sanitizedJson = sanitizeJsonString(jsonStr);
-      result = JSON.parse(sanitizedJson);
+      return JSON.parse(sanitizedJson);
     } catch (secondError) {
-      console.error(`[${stock.name}] Failed to parse JSON:`, secondError.message);
-      return { result: null, successKeyIndex };
+      console.error(`[${stockName}] Failed to parse JSON:`, secondError.message);
+      return null;
     }
   }
-
-  console.log(
-    `[${stock.name}] Done - Price: ${result.extracted_data?.currentPrice}`,
-  );
-
-  // 추출된 데이터 검증
-  if (result.extracted_data) {
-    const warnings = validateExtractedData(result.extracted_data, stock.name);
-    if (warnings.length > 0) {
-      result.dataValidationWarnings = warnings;
-    }
-  }
-
-  return { result, successKeyIndex };
 }
 
-async function analyzeStocks(stocks) {
-  console.log(
-    `\nAnalyzing ${stocks.length} stocks individually with Gemini 2.5 Flash...`,
-  );
+// ============================================
+// 단일 종목 분석
+// ============================================
+async function analyzeSingleStock(stock) {
+  const imagePath = path.join(SCREENSHOTS_DIR, `${stock.code}.png`);
 
-  const results = [];
-  let currentKeyIndex = 0;  // 현재 작동하는 API 키 인덱스 추적
+  if (!fs.existsSync(imagePath)) {
+    console.log(`[${stock.name}] Screenshot not found, skipping...`);
+    return null;
+  }
 
-  for (const stock of stocks) {
-    const { result, successKeyIndex } = await analyzeSingleStock(stock, currentKeyIndex);
+  const imageBase64 = loadImageAsBase64(imagePath);
+  const prompt = buildSingleStockPrompt(stock);
 
-    // 성공한 키 인덱스로 업데이트 (다음 종목부터 이 키로 시작)
-    if (successKeyIndex !== currentKeyIndex) {
-      console.log(`Switching to API key #${successKeyIndex + 1} for subsequent requests`);
-      currentKeyIndex = successKeyIndex;
+  console.log(`[${stock.name}] Analyzing...`);
+
+  try {
+    const text = await analyzeWithFallback(prompt, imageBase64, stock.name);
+    const result = parseJsonResponse(text, stock.name);
+
+    if (!result) {
+      return null;
     }
 
+    console.log(`[${stock.name}] Done - Price: ${result.extracted_data?.currentPrice}`);
+
+    // 추출된 데이터 검증
+    if (result.extracted_data) {
+      const warnings = validateExtractedData(result.extracted_data, stock.name);
+      if (warnings.length > 0) {
+        result.dataValidationWarnings = warnings;
+      }
+    }
+
+    return result;
+  } catch (error) {
+    console.error(`[${stock.name}] Analysis failed: ${error.message}`);
+    return null;
+  }
+}
+
+// ============================================
+// 전체 종목 분석
+// ============================================
+async function analyzeStocks(stocks) {
+  console.log(`\nAnalyzing ${stocks.length} stocks with multi-provider fallback...`);
+
+  const results = [];
+
+  for (const stock of stocks) {
+    const result = await analyzeSingleStock(stock);
     if (result) {
       results.push(result);
     }
     // API 호출 간 잠시 대기 (rate limit 방지)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
   }
 
   return { stocks: results };
 }
 
+// ============================================
+// 메인 함수
+// ============================================
 async function main() {
-  console.log("=== Stock Analyzer Started ===");
+  console.log("\n=== Stock Analyzer Started ===");
   console.log(`Timestamp: ${new Date().toISOString()}`);
-  console.log(`Model: Gemini 2.5 Flash`);
+  console.log("Multi-Provider Fallback: OpenRouter → Gemini → Groq → Cloudflare\n");
 
   const stocks = loadStocks();
   console.log(`Loaded ${stocks.length} stocks`);
@@ -416,26 +605,21 @@ async function main() {
   try {
     const analysisResult = await analyzeStocks(stocks);
 
-    // 결과에 타임스탬프 추가
     const finalResult = {
       lastUpdated: new Date().toISOString(),
+      provider: currentProvider || "unknown",
       ...analysisResult,
     };
 
     fs.writeFileSync(RESULTS_PATH, JSON.stringify(finalResult, null, 2));
 
-    // public/data에도 복사
-    const publicDataPath = path.join(
-      ROOT_DIR,
-      "public",
-      "data",
-      "analysis_results.json",
-    );
+    const publicDataPath = path.join(ROOT_DIR, "public", "data", "analysis_results.json");
     fs.writeFileSync(publicDataPath, JSON.stringify(finalResult, null, 2));
 
     console.log(`\n=== Analysis Complete ===`);
     console.log(`Results saved to: ${RESULTS_PATH}`);
     console.log(`Analyzed ${finalResult.stocks?.length || 0} stocks`);
+    console.log(`Final provider used: ${providers[currentProvider]?.name || "None"}`);
   } catch (error) {
     console.error("Analysis failed:", error.message);
     process.exit(1);
