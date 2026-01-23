@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { BarChart3, LogIn, LogOut, RefreshCw } from 'lucide-react';
+import { BarChart3, LogIn, LogOut, RefreshCw, Search } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import StockDetail from '@/components/StockDetail';
 import LoginModal from '@/components/LoginModal';
+import StockSearch from '@/components/StockSearch';
 
 const ADMIN_ID = 'xxonbang';
 const ADMIN_PW = '11223344';
@@ -18,9 +19,14 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(() => {
     return localStorage.getItem('isAdmin') === 'true';
   });
+  const [githubPat, setGithubPat] = useState(() => {
+    // 우선순위: localStorage > 환경변수
+    return localStorage.getItem('githubPat') || import.meta.env.VITE_GITHUB_PAT || '';
+  });
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState('');
+  const [currentPage, setCurrentPage] = useState('main'); // 'main' | 'search'
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,10 +50,15 @@ function App() {
     fetchData();
   }, []);
 
-  const handleLogin = (id, pw) => {
+  const handleLogin = (id, pw, pat = '') => {
     if (id === ADMIN_ID && pw === ADMIN_PW) {
       localStorage.setItem('isAdmin', 'true');
       setIsAdmin(true);
+      // PAT가 입력되면 저장 (입력 안 하면 기존 값 유지)
+      if (pat) {
+        localStorage.setItem('githubPat', pat);
+        setGithubPat(pat);
+      }
       setShowLoginModal(false);
       return true;
     }
@@ -56,7 +67,10 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('isAdmin');
+    localStorage.removeItem('githubPat');
     setIsAdmin(false);
+    // 환경변수 PAT가 있으면 그것으로 복원
+    setGithubPat(import.meta.env.VITE_GITHUB_PAT || '');
   };
 
   const triggerAnalysis = () => {
@@ -81,19 +95,30 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-8 h-8 text-primary" />
-              <h1 className="text-2xl font-bold">Check My Stocks</h1>
-              <span className="text-sm text-muted-foreground ml-2">AI ETF 분석</span>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+              <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-primary flex-shrink-0" />
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-2xl font-bold truncate">Check My Stocks</h1>
+                <span className="text-xs text-muted-foreground hidden sm:inline">AI ETF 분석</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               {analysisMessage && (
-                <span className={`text-sm ${analysisMessage.includes('오류') ? 'text-red-500' : 'text-green-500'}`}>
+                <span className={`text-xs hidden sm:inline ${analysisMessage.includes('오류') ? 'text-red-500' : 'text-green-500'}`}>
                   {analysisMessage}
                 </span>
               )}
+              <Button
+                onClick={() => setCurrentPage(currentPage === 'search' ? 'main' : 'search')}
+                size="sm"
+                variant={currentPage === 'search' ? 'default' : 'outline'}
+                className="px-2 sm:px-3"
+              >
+                <Search className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">종목 검색</span>
+              </Button>
               {isAdmin ? (
                 <>
                   <Button
@@ -101,19 +126,20 @@ function App() {
                     disabled={isAnalyzing}
                     size="sm"
                     variant="outline"
+                    className="px-2 sm:px-3"
                   >
-                    <RefreshCw className={`w-4 h-4 mr-2 ${isAnalyzing ? 'animate-spin' : ''}`} />
-                    {isAnalyzing ? '분석 중...' : '수동 분석'}
+                    <RefreshCw className={`w-4 h-4 sm:mr-2 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">{isAnalyzing ? '분석 중...' : '수동 분석'}</span>
                   </Button>
-                  <Button onClick={handleLogout} size="sm" variant="ghost">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    로그아웃
+                  <Button onClick={handleLogout} size="sm" variant="ghost" className="px-2 sm:px-3">
+                    <LogOut className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">로그아웃</span>
                   </Button>
                 </>
               ) : (
-                <Button onClick={() => setShowLoginModal(true)} size="sm" variant="outline">
-                  <LogIn className="w-4 h-4 mr-2" />
-                  로그인
+                <Button onClick={() => setShowLoginModal(true)} size="sm" variant="outline" className="px-2 sm:px-3">
+                  <LogIn className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">로그인</span>
                 </Button>
               )}
             </div>
@@ -121,9 +147,16 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {error ? (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-6">
+        {currentPage === 'search' ? (
+          <StockSearch
+            onBack={() => setCurrentPage('main')}
+            isAdmin={isAdmin}
+            githubToken={githubPat}
+            githubRepo={GITHUB_REPO}
+          />
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 text-red-700 text-sm">
             오류: {error}
           </div>
         ) : (
@@ -138,12 +171,12 @@ function App() {
                   setSelectedStock(stock);
                 }}
               >
-                <TabsList className="flex-wrap h-auto gap-1 mb-4">
+                <TabsList className="flex-wrap h-auto gap-1 mb-3 sm:mb-4 w-full justify-start overflow-x-auto">
                   {data.stocks.map((stock) => (
                     <TabsTrigger
                       key={stock.code}
                       value={stock.code}
-                      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap"
                     >
                       {stock.name}
                     </TabsTrigger>
@@ -161,8 +194,8 @@ function App() {
         )}
       </main>
 
-      <footer className="border-t bg-white mt-12">
-        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
+      <footer className="border-t bg-white mt-8 sm:mt-12">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 text-center text-xs sm:text-sm text-muted-foreground">
           <p>Powered by Google Gemini 2.5 Flash</p>
           <p className="mt-1">Data is updated 3 times daily via GitHub Actions</p>
         </div>
@@ -172,6 +205,7 @@ function App() {
         <LoginModal
           onLogin={handleLogin}
           onClose={() => setShowLoginModal(false)}
+          savedPat={githubPat}
         />
       )}
     </div>
