@@ -233,6 +233,11 @@ export async function triggerWorkflowWithPAT({ owner, repo, workflowId, ref = 'm
       // JSON 파싱 실패 시 기본 메시지 사용
     }
 
+    // 403 오류 시 권한 안내
+    if (response.status === 403) {
+      errorMessage = 'PAT 권한이 부족합니다. GitHub에서 토큰의 "Actions: Read and write" 권한을 확인해주세요.';
+    }
+
     throw new Error(errorMessage);
   } catch (error) {
     console.error('워크플로우 트리거 오류:', error);
