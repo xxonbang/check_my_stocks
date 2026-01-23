@@ -786,8 +786,9 @@ async function callCloudflareVision(prompt, imageBase64) {
 // ============================================
 
 async function extractDataWithVision(prompt, imageBase64, stockName) {
-  // 프로바이더 순서: OpenRouter → Groq → Gemini → Cloudflare
-  const providerOrder = ["openrouter", "groq", "gemini", "cloudflare"];
+  // 프로바이더 순서: Gemini (차트 분석 품질) → OpenRouter → Groq → Cloudflare
+  // Gemini가 차트 기술적 분석에 가장 뛰어남
+  const providerOrder = ["gemini", "openrouter", "groq", "cloudflare"];
 
   // 현재 작동 중인 프로바이더가 있으면 먼저 시도
   if (currentVisionProvider && visionProviders[currentVisionProvider].enabled && !visionProviders[currentVisionProvider].failed) {
@@ -1077,9 +1078,9 @@ async function analyzeStocks(stocks) {
 async function main() {
   console.log("\n=== Stock Analyzer Started (3-Phase Pipeline) ===");
   console.log(`Timestamp: ${new Date().toISOString()}`);
-  console.log("Phase 1 (OCR): OpenRouter → Groq → Gemini → Cloudflare");
+  console.log("Phase 1 (OCR): Gemini (Best for Chart) → OpenRouter → Groq → Cloudflare");
   console.log("Phase 2 (Report): Groq (Fast) → OpenRouter → Gemini");
-  console.log("Phase 3 (Prediction): DeepSeek-R1 → Qwen QwQ → Groq\n");
+  console.log("Phase 3 (Prediction): DeepSeek-R1 → Groq\n");
 
   const stocks = loadStocks();
   console.log(`Loaded ${stocks.length} stocks`);
