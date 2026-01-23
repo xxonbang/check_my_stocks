@@ -9,12 +9,22 @@ function LoginModal({ onLogin, onClose, savedPat = '' }) {
   const [pat, setPat] = useState(savedPat);
   const [showPat, setShowPat] = useState(false);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = onLogin(id, pw, pat);
-    if (!success) {
-      setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const result = await onLogin(id, pw, pat);
+      if (!result.success) {
+        setError(result.error || '아이디 또는 비밀번호가 올바르지 않습니다.');
+      }
+    } catch (err) {
+      setError('로그인 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -84,10 +94,10 @@ function LoginModal({ onLogin, onClose, savedPat = '' }) {
 
             {error && <p className="text-xs sm:text-sm text-red-500">{error}</p>}
             <div className="flex gap-2">
-              <Button type="submit" className="flex-1">
-                로그인
+              <Button type="submit" className="flex-1" disabled={isLoading}>
+                {isLoading ? '로그인 중...' : '로그인'}
               </Button>
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
                 취소
               </Button>
             </div>

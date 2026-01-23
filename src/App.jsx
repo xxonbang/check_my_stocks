@@ -6,9 +6,8 @@ import Dashboard from '@/components/Dashboard';
 import StockDetail from '@/components/StockDetail';
 import LoginModal from '@/components/LoginModal';
 import StockSearch from '@/components/StockSearch';
+import { login, checkAuth, logout as authLogout, saveToken } from '@/lib/auth';
 
-const ADMIN_ID = 'xxonbang';
-const ADMIN_PW = '11223344';
 const GITHUB_REPO = 'xxonbang/check_my_stocks';
 
 function App() {
@@ -16,9 +15,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedStock, setSelectedStock] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(() => {
-    return localStorage.getItem('isAdmin') === 'true';
-  });
+  const [isAdmin, setIsAdmin] = useState(false);
   const [githubPat, setGithubPat] = useState(() => {
     return localStorage.getItem('githubPat') || import.meta.env.VITE_GITHUB_PAT || '';
   });
@@ -46,31 +43,39 @@ function App() {
     }
   };
 
+  // 초기 로드: 데이터 + 인증 상태 확인
   useEffect(() => {
-    const loadInitialData = async () => {
+    const initialize = async () => {
+      // 인증 상태 확인 (JWT 검증)
+      const authState = await checkAuth();
+      setIsAdmin(authState.isAuthenticated);
+
+      // 데이터 로드
       await fetchData();
       setLoading(false);
     };
-    loadInitialData();
+    initialize();
   }, []);
 
-  const handleLogin = (id, pw, pat = '') => {
-    if (id === ADMIN_ID && pw === ADMIN_PW) {
-      localStorage.setItem('isAdmin', 'true');
+  const handleLogin = async (id, pw, pat = '') => {
+    const result = await login(id, pw);
+
+    if (result.success) {
+      saveToken(result.token);
       setIsAdmin(true);
       if (pat) {
         localStorage.setItem('githubPat', pat);
         setGithubPat(pat);
       }
       setShowLoginModal(false);
-      return true;
+      return { success: true };
     }
-    return false;
+
+    return { success: false, error: result.error };
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('isAdmin');
-    localStorage.removeItem('githubPat');
+    authLogout();
     setIsAdmin(false);
     setGithubPat(import.meta.env.VITE_GITHUB_PAT || '');
   };
