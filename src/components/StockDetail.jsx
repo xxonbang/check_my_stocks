@@ -2,7 +2,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Cpu, FileText, Brain, ChevronRight } from 'lucide-react';
 
 function StockDetail({ stock }) {
   if (!stock) {
@@ -82,11 +82,44 @@ function StockDetail({ stock }) {
   const data = extracted_data || {};
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* 좌측: 모든 지표 표시 */}
-      <div className="space-y-4">
-        {/* 가격 정보 카드 */}
-        <Card>
+    <div className="space-y-6">
+      {/* AI 파이프라인 정보 - 상단 배너 */}
+      {pipeline && (
+        <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Cpu className="w-3.5 h-3.5" />
+              <span className="font-medium">AI 분석 파이프라인</span>
+            </div>
+            <div className="flex items-center gap-1 text-xs">
+              <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-md border border-purple-200">
+                <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                <span className="text-muted-foreground">OCR:</span>
+                <span className="font-medium text-purple-700">{pipeline.ocr?.replace(' API', '') || '-'}</span>
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-md border border-blue-200">
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                <span className="text-muted-foreground">리포트:</span>
+                <span className="font-medium text-blue-700">{pipeline.report?.replace(' API', '') || '-'}</span>
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-md border border-green-200">
+                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                <span className="text-muted-foreground">예측:</span>
+                <span className="font-medium text-green-700">{pipeline.prediction?.replace(' API', '') || '-'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 메인 컨텐츠 - 2컬럼 그리드 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 좌측: 모든 지표 표시 */}
+        <div className="space-y-4">
+          {/* 가격 정보 카드 */}
+          <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
@@ -329,47 +362,23 @@ function StockDetail({ stock }) {
             </CardContent>
           </Card>
         )}
-      </div>
+        </div>
 
-      {/* 우측: AI 분석 리포트 */}
-      <div className="space-y-4">
-        <Card className="h-full">
-          <CardHeader>
-            <CardTitle className="text-lg">AI 분석 리포트</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="markdown-content prose prose-sm max-w-none">
-              <ReactMarkdown>
-                {ai_report || '분석 리포트가 없습니다.'}
-              </ReactMarkdown>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* AI 파이프라인 정보 */}
-        {pipeline && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">AI 분석 파이프라인</CardTitle>
+        {/* 우측: AI 분석 리포트 */}
+        <div>
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="text-lg">AI 분석 리포트</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="bg-purple-50 p-2 rounded text-center">
-                  <p className="text-muted-foreground mb-1">OCR</p>
-                  <p className="font-medium text-purple-700">{pipeline.ocr || '-'}</p>
-                </div>
-                <div className="bg-blue-50 p-2 rounded text-center">
-                  <p className="text-muted-foreground mb-1">리포트</p>
-                  <p className="font-medium text-blue-700">{pipeline.report || '-'}</p>
-                </div>
-                <div className="bg-green-50 p-2 rounded text-center">
-                  <p className="text-muted-foreground mb-1">예측</p>
-                  <p className="font-medium text-green-700">{pipeline.prediction || '-'}</p>
-                </div>
+              <div className="markdown-content prose prose-sm max-w-none">
+                <ReactMarkdown>
+                  {ai_report || '분석 리포트가 없습니다.'}
+                </ReactMarkdown>
               </div>
             </CardContent>
           </Card>
-        )}
+        </div>
       </div>
     </div>
   );
