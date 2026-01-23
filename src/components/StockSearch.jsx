@@ -397,11 +397,18 @@ function StockSearch({ isAdmin, githubToken, githubRepo, onAnalysisComplete, exi
     if (result) {
       setProgressModal(null);
     } else {
-      // 결과를 찾을 수 없으면 포트폴리오로 이동
+      // 결과를 찾을 수 없음 - 배포 지연 또는 로컬 환경
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const productionUrl = `https://${githubRepo.split('/')[0]}.github.io/${githubRepo.split('/')[1]}/`;
+
       setProgressModal(null);
-      if (onAnalysisComplete) {
-        onAnalysisComplete(progressModal.code);
-      }
+      setErrorPopup({
+        keyword: progressModal.name,
+        message: isLocalhost
+          ? `로컬 환경에서는 분석 결과를 바로 확인할 수 없습니다. GitHub Pages 배포 완료 후 프로덕션 사이트에서 확인해주세요.`
+          : `분석 결과 배포가 아직 완료되지 않았습니다. 잠시 후 페이지를 새로고침하거나 포트폴리오 탭에서 확인해주세요.`,
+        productionUrl: isLocalhost ? productionUrl : null
+      });
     }
   };
 
@@ -803,9 +810,9 @@ function StockSearch({ isAdmin, githubToken, githubRepo, onAnalysisComplete, exi
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-sm sm:max-w-md">
             <CardHeader className="relative pb-2">
-              <CardTitle className="flex items-center gap-2 text-red-500 text-base sm:text-lg pr-8">
+              <CardTitle className="flex items-center gap-2 text-amber-500 text-base sm:text-lg pr-8">
                 <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                오류
+                {errorPopup.productionUrl ? '안내' : '오류'}
               </CardTitle>
               <button
                 onClick={() => setErrorPopup(null)}
@@ -816,11 +823,21 @@ function StockSearch({ isAdmin, githubToken, githubRepo, onAnalysisComplete, exi
             </CardHeader>
             <CardContent className="space-y-3 sm:space-y-4">
               <p className="text-xs sm:text-sm">
-                검색어: <strong>"{errorPopup.keyword}"</strong>
+                종목: <strong>{errorPopup.keyword}</strong>
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 {errorPopup.message}
               </p>
+              {errorPopup.productionUrl && (
+                <Button
+                  onClick={() => window.open(errorPopup.productionUrl, '_blank')}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  프로덕션 사이트 열기
+                </Button>
+              )}
               <Button onClick={() => setErrorPopup(null)} className="w-full">
                 확인
               </Button>
