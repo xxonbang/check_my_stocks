@@ -151,6 +151,11 @@ jobs:
         run: npm ci
 
       - name: Build
+        env:
+          VITE_ADMIN_ID: ${{ secrets.VITE_ADMIN_ID }}
+          VITE_ADMIN_PW_HASH: ${{ secrets.VITE_ADMIN_PW_HASH }}
+          VITE_JWT_SECRET: ${{ secrets.VITE_JWT_SECRET }}
+          VITE_GITHUB_PAT: ${{ secrets.VITE_GITHUB_PAT }}
         run: npm run build
 
       - name: Verify build output

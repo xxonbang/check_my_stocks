@@ -5,7 +5,7 @@
 
 // 환경변수에서 설정 로드
 const ADMIN_ID = import.meta.env.VITE_ADMIN_ID || '';
-const ADMIN_PW = import.meta.env.VITE_ADMIN_PW || '';
+const ADMIN_PW_HASH = import.meta.env.VITE_ADMIN_PW_HASH || ''; // 해시된 비밀번호
 const JWT_SECRET = import.meta.env.VITE_JWT_SECRET || 'default-secret-key';
 const TOKEN_EXPIRY_HOURS = 24; // 토큰 유효 시간
 
@@ -127,7 +127,7 @@ async function hashPassword(password) {
  */
 export async function login(id, pw) {
   // 환경변수 설정 확인
-  if (!ADMIN_ID || !ADMIN_PW) {
+  if (!ADMIN_ID || !ADMIN_PW_HASH) {
     return {
       success: false,
       error: '관리자 인증 설정이 되어있지 않습니다.'
@@ -142,11 +142,10 @@ export async function login(id, pw) {
     };
   }
 
-  // 비밀번호 확인 (해시 비교)
+  // 비밀번호 확인 (입력값 해시 vs 저장된 해시)
   const inputHash = await hashPassword(pw);
-  const storedHash = await hashPassword(ADMIN_PW);
 
-  if (inputHash !== storedHash) {
+  if (inputHash !== ADMIN_PW_HASH) {
     return {
       success: false,
       error: '아이디 또는 비밀번호가 올바르지 않습니다.'
