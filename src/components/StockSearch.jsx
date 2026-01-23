@@ -256,7 +256,10 @@ function StockSearch({ isAdmin, githubToken, githubRepo, onAnalysisComplete, exi
         repo,
         workflowId: 'daily_analysis.yml',
         ref: 'main',
-        inputs: {},
+        inputs: {
+          stock_code: selectedStock.code,
+          stock_name: selectedStock.name
+        },
         token: githubToken
       });
 

@@ -15,6 +15,11 @@ const STOCKS_PATH = path.join(ROOT_DIR, "data", "stocks.json");
 const SCREENSHOTS_DIR = path.join(ROOT_DIR, "public", "screenshots");
 const RESULTS_PATH = path.join(ROOT_DIR, "data", "analysis_results.json");
 
+// 특정 종목 분석 지원
+const TARGET_STOCK_CODE = process.env.TARGET_STOCK_CODE || '';
+const TARGET_STOCK_NAME = process.env.TARGET_STOCK_NAME || '';
+const SINGLE_STOCK_MODE = !!TARGET_STOCK_CODE;
+
 // ============================================
 // 멀티 프로바이더 설정
 // ============================================
@@ -115,8 +120,27 @@ if (visionProviders.openrouter.enabled && !hasVisionFallback) {
 // ============================================
 
 function loadStocks() {
+  // 특정 종목이 지정된 경우 해당 종목만 반환
+  if (SINGLE_STOCK_MODE) {
+    console.log(`[Single Stock Mode] Targeting: ${TARGET_STOCK_NAME || TARGET_STOCK_CODE} (${TARGET_STOCK_CODE})`);
+    return [{ code: TARGET_STOCK_CODE, name: TARGET_STOCK_NAME || TARGET_STOCK_CODE }];
+  }
+
+  // 전체 종목 분석
   const data = fs.readFileSync(STOCKS_PATH, "utf-8");
   return JSON.parse(data).stocks;
+}
+
+function loadExistingResults() {
+  try {
+    if (fs.existsSync(RESULTS_PATH)) {
+      const data = fs.readFileSync(RESULTS_PATH, "utf-8");
+      return JSON.parse(data);
+    }
+  } catch (e) {
+    console.warn("Could not load existing results:", e.message);
+  }
+  return { stocks: [] };
 }
 
 function loadImageAsBase64(imagePath) {
@@ -1120,6 +1144,7 @@ async function analyzeStocks(stocks) {
 async function main() {
   console.log("\n=== Stock Analyzer Started (3-Phase Pipeline) ===");
   console.log(`Timestamp: ${new Date().toISOString()}`);
+  console.log(`Mode: ${SINGLE_STOCK_MODE ? 'Single Stock' : 'All Stocks'}`);
   console.log("Phase 1 (OCR): Gemini → OpenRouter → Groq → Cloudflare");
   console.log("Phase 2 (Report): Gemini → Groq → OpenRouter");
   console.log("Phase 3 (Prediction): Gemini → DeepSeek-R1 → Groq\n");
@@ -1130,15 +1155,47 @@ async function main() {
   try {
     const analysisResult = await analyzeStocks(stocks);
 
-    const finalResult = {
-      lastUpdated: new Date().toISOString(),
-      pipeline: {
-        ocr: currentVisionProvider ? visionProviders[currentVisionProvider]?.name : "None",
-        report: currentTextProvider ? textProviders[currentTextProvider]?.name : "None",
-        prediction: currentReasoningProvider ? reasoningProviders[currentReasoningProvider]?.name : "None"
-      },
-      ...analysisResult,
+    const pipelineInfo = {
+      ocr: currentVisionProvider ? visionProviders[currentVisionProvider]?.name : "None",
+      report: currentTextProvider ? textProviders[currentTextProvider]?.name : "None",
+      prediction: currentReasoningProvider ? reasoningProviders[currentReasoningProvider]?.name : "None"
     };
+
+    let finalResult;
+
+    if (SINGLE_STOCK_MODE) {
+      // 단일 종목 모드: 기존 결과에 병합
+      const existingResults = loadExistingResults();
+      const existingStocks = existingResults.stocks || [];
+
+      // 새 분석 결과의 종목
+      const newStock = analysisResult.stocks?.[0];
+
+      if (newStock) {
+        // 기존 종목 중 같은 코드가 있으면 업데이트, 없으면 추가
+        const stockIndex = existingStocks.findIndex(s => s.code === newStock.code);
+        if (stockIndex >= 0) {
+          existingStocks[stockIndex] = newStock;
+          console.log(`Updated existing stock: ${newStock.name} (${newStock.code})`);
+        } else {
+          existingStocks.push(newStock);
+          console.log(`Added new stock: ${newStock.name} (${newStock.code})`);
+        }
+      }
+
+      finalResult = {
+        lastUpdated: new Date().toISOString(),
+        pipeline: pipelineInfo,
+        stocks: existingStocks,
+      };
+    } else {
+      // 전체 종목 모드: 기존 결과 덮어쓰기
+      finalResult = {
+        lastUpdated: new Date().toISOString(),
+        pipeline: pipelineInfo,
+        ...analysisResult,
+      };
+    }
 
     fs.writeFileSync(RESULTS_PATH, JSON.stringify(finalResult, null, 2));
 
@@ -1147,7 +1204,7 @@ async function main() {
 
     console.log(`\n=== Analysis Complete ===`);
     console.log(`Results saved to: ${RESULTS_PATH}`);
-    console.log(`Analyzed ${finalResult.stocks?.length || 0} stocks`);
+    console.log(`Total stocks in results: ${finalResult.stocks?.length || 0}`);
     console.log(`OCR Provider: ${finalResult.pipeline.ocr}`);
     console.log(`Report Provider: ${finalResult.pipeline.report}`);
     console.log(`Prediction Provider: ${finalResult.pipeline.prediction}`);

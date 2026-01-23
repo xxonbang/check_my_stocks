@@ -10,7 +10,18 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 const STOCKS_PATH = path.join(ROOT_DIR, 'data', 'stocks.json');
 const SCREENSHOTS_DIR = path.join(ROOT_DIR, 'public', 'screenshots');
 
+// 특정 종목 분석 지원
+const TARGET_STOCK_CODE = process.env.TARGET_STOCK_CODE || '';
+const TARGET_STOCK_NAME = process.env.TARGET_STOCK_NAME || '';
+
 async function loadStocks() {
+  // 특정 종목이 지정된 경우 해당 종목만 반환
+  if (TARGET_STOCK_CODE) {
+    console.log(`[Single Stock Mode] Targeting: ${TARGET_STOCK_NAME || TARGET_STOCK_CODE} (${TARGET_STOCK_CODE})`);
+    return [{ code: TARGET_STOCK_CODE, name: TARGET_STOCK_NAME || TARGET_STOCK_CODE }];
+  }
+
+  // 전체 종목 분석
   const data = fs.readFileSync(STOCKS_PATH, 'utf-8');
   return JSON.parse(data).stocks;
 }

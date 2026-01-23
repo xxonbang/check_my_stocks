@@ -6,7 +6,16 @@ on:
     - cron: '0 23 * * *'  # KST 08:00
     - cron: '0 4 * * *'   # KST 13:00
     - cron: '0 13 * * *'  # KST 22:00
-  workflow_dispatch:  # 수동 실행 허용
+  workflow_dispatch:
+    inputs:
+      stock_code:
+        description: '분석할 종목 코드 (비워두면 전체 분석)'
+        required: false
+        default: ''
+      stock_name:
+        description: '종목명'
+        required: false
+        default: ''
   repository_dispatch:
     types: [manual_analysis]
   push:
@@ -52,11 +61,16 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Run scraper
+        env:
+          TARGET_STOCK_CODE: ${{ github.event.inputs.stock_code }}
+          TARGET_STOCK_NAME: ${{ github.event.inputs.stock_name }}
         run: npm run scrape
         continue-on-error: true
 
       - name: Run AI analysis
         env:
+          TARGET_STOCK_CODE: ${{ github.event.inputs.stock_code }}
+          TARGET_STOCK_NAME: ${{ github.event.inputs.stock_name }}
           # Gemini API (기존)
           GEMINI_API_KEY_01: ${{ secrets.GEMINI_API_KEY_01 }}
           GEMINI_API_KEY_02: ${{ secrets.GEMINI_API_KEY_02 }}
