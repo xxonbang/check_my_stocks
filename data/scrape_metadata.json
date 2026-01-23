@@ -1,13 +1,45 @@
 {
-<<<<<<< Updated upstream
-  "timestamp": "2026-01-23T13:42:04.194Z",
-=======
-  "timestamp": "2026-01-23T13:47:58.859Z",
->>>>>>> Stashed changes
+  "timestamp": "2026-01-23T14:12:22.607Z",
   "results": [
     {
-      "code": "090710",
-      "name": "휴림로봇",
+      "code": "379810",
+      "name": "KODEX 미국나스닥100",
+      "success": true,
+      "error": null
+    },
+    {
+      "code": "390390",
+      "name": "KODEX 미국반도체",
+      "success": true,
+      "error": null
+    },
+    {
+      "code": "465580",
+      "name": "KODEX 미국빅테크TOP7Plus",
+      "success": true,
+      "error": null
+    },
+    {
+      "code": "360200",
+      "name": "ACE 미국S&P500",
+      "success": true,
+      "error": null
+    },
+    {
+      "code": "487230",
+      "name": "KODEX 미국AI전력핵심인프라",
+      "success": true,
+      "error": null
+    },
+    {
+      "code": "411060",
+      "name": "ACE KRX금현물",
+      "success": true,
+      "error": null
+    },
+    {
+      "code": "438080",
+      "name": "ACE 미국S&P500미국채혼합50",
       "success": true,
       "error": null
     }
