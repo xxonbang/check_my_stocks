@@ -340,6 +340,7 @@ export async function getWorkflowRuns({ owner, repo, token, limit = 5 }) {
       status: run.status,
       conclusion: run.conclusion,
       createdAt: run.created_at,
+      runStartedAt: run.run_started_at,
       updatedAt: run.updated_at,
       htmlUrl: run.html_url,
     }));
@@ -347,4 +348,202 @@ export async function getWorkflowRuns({ owner, repo, token, limit = 5 }) {
     console.error('워크플로우 상태 조회 오류:', error);
     throw error;
   }
+}
+
+/**
+ * 특정 워크플로우 실행 상태 조회
+ * @param {Object} options
+ * @param {string} options.owner - 레포지토리 소유자
+ * @param {string} options.repo - 레포지토리 이름
+ * @param {number} options.runId - 워크플로우 실행 ID
+ * @param {string} options.token - GitHub PAT
+ * @returns {Promise<Object>} - 워크플로우 실행 정보
+ */
+export async function getWorkflowRunById({ owner, repo, runId, token }) {
+  if (!token) {
+    throw new Error('GitHub PAT가 필요합니다.');
+  }
+
+  const url = `https://api.github.com/repos/${owner}/${repo}/actions/runs/${runId}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': `Bearer ${token}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('워크플로우 상태 조회에 실패했습니다.');
+    }
+
+    const run = await response.json();
+
+    return {
+      id: run.id,
+      name: run.name,
+      status: run.status,
+      conclusion: run.conclusion,
+      createdAt: run.created_at,
+      runStartedAt: run.run_started_at,
+      updatedAt: run.updated_at,
+      htmlUrl: run.html_url,
+    };
+  } catch (error) {
+    console.error('워크플로우 상태 조회 오류:', error);
+    throw error;
+  }
+}
+
+/**
+ * 완료된 워크플로우들의 평균 소요 시간 계산 (초 단위)
+ * @param {Object} options
+ * @param {string} options.owner - 레포지토리 소유자
+ * @param {string} options.repo - 레포지토리 이름
+ * @param {string} options.token - GitHub PAT
+ * @param {string} options.workflowName - 워크플로우 이름 (선택, 필터링용)
+ * @returns {Promise<number>} - 평균 소요 시간 (초)
+ */
+export async function getAverageWorkflowDuration({ owner, repo, token, workflowName = null }) {
+  try {
+    const runs = await getWorkflowRuns({ owner, repo, token, limit: 10 });
+
+    // 완료된 워크플로우만 필터링
+    let completedRuns = runs.filter(run =>
+      run.status === 'completed' &&
+      run.conclusion === 'success' &&
+      run.runStartedAt
+    );
+
+    // 워크플로우 이름으로 필터링 (선택)
+    if (workflowName) {
+      completedRuns = completedRuns.filter(run => run.name === workflowName);
+    }
+
+    if (completedRuns.length === 0) {
+      // 기본값: 3분 (180초)
+      return 180;
+    }
+
+    // 소요 시간 계산
+    const durations = completedRuns.map(run => {
+      const start = new Date(run.runStartedAt).getTime();
+      const end = new Date(run.updatedAt).getTime();
+      return (end - start) / 1000; // 초 단위
+    });
+
+    // 평균 계산
+    const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
+
+    return Math.round(avgDuration);
+  } catch (error) {
+    console.error('평균 소요 시간 계산 오류:', error);
+    // 오류 시 기본값 반환
+    return 180;
+  }
+}
+
+/**
+ * 가장 최근에 시작된 워크플로우 찾기 (트리거 직후 호출)
+ * @param {Object} options
+ * @param {string} options.owner - 레포지토리 소유자
+ * @param {string} options.repo - 레포지토리 이름
+ * @param {string} options.token - GitHub PAT
+ * @param {number} options.maxWaitMs - 최대 대기 시간 (기본: 30초)
+ * @param {number} options.pollIntervalMs - 폴링 간격 (기본: 2초)
+ * @returns {Promise<Object|null>} - 워크플로우 실행 정보 또는 null
+ */
+export async function findLatestWorkflowRun({ owner, repo, token, maxWaitMs = 30000, pollIntervalMs = 2000 }) {
+  const startTime = Date.now();
+
+  // 트리거 직전의 최신 워크플로우 ID 기억
+  let lastKnownRunId = null;
+  try {
+    const runs = await getWorkflowRuns({ owner, repo, token, limit: 1 });
+    if (runs.length > 0) {
+      lastKnownRunId = runs[0].id;
+    }
+  } catch (e) {
+    // 무시
+  }
+
+  // 새 워크플로우가 나타날 때까지 폴링
+  while (Date.now() - startTime < maxWaitMs) {
+    try {
+      const runs = await getWorkflowRuns({ owner, repo, token, limit: 3 });
+
+      // 새로운 워크플로우 찾기 (queued 또는 in_progress 상태)
+      const newRun = runs.find(run =>
+        (run.status === 'queued' || run.status === 'in_progress') &&
+        run.id !== lastKnownRunId
+      );
+
+      if (newRun) {
+        return newRun;
+      }
+    } catch (e) {
+      console.error('워크플로우 검색 오류:', e);
+    }
+
+    // 대기
+    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+  }
+
+  return null;
+}
+
+/**
+ * 워크플로우 완료까지 상태 폴링
+ * @param {Object} options
+ * @param {string} options.owner - 레포지토리 소유자
+ * @param {string} options.repo - 레포지토리 이름
+ * @param {number} options.runId - 워크플로우 실행 ID
+ * @param {string} options.token - GitHub PAT
+ * @param {number} options.pollIntervalMs - 폴링 간격 (기본: 10초)
+ * @param {number} options.maxWaitMs - 최대 대기 시간 (기본: 10분)
+ * @param {function} options.onProgress - 진행 상태 콜백 (선택)
+ * @returns {Promise<Object>} - 최종 워크플로우 실행 정보
+ */
+export async function pollWorkflowUntilComplete({
+  owner,
+  repo,
+  runId,
+  token,
+  pollIntervalMs = 10000,
+  maxWaitMs = 600000,
+  onProgress = null
+}) {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < maxWaitMs) {
+    try {
+      const run = await getWorkflowRunById({ owner, repo, runId, token });
+
+      // 진행 콜백 호출
+      if (onProgress) {
+        const elapsedMs = Date.now() - startTime;
+        onProgress({
+          status: run.status,
+          conclusion: run.conclusion,
+          elapsedMs,
+          run,
+        });
+      }
+
+      // 완료 체크
+      if (run.status === 'completed') {
+        return run;
+      }
+    } catch (e) {
+      console.error('폴링 오류:', e);
+    }
+
+    // 대기
+    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+  }
+
+  throw new Error('워크플로우 완료 대기 시간 초과');
 }

@@ -1,8 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, ArrowLeft, Check, AlertCircle, Plus, X, Play, ExternalLink } from 'lucide-react';
-import { searchStocks, getStockDetail, addStockToList, getCurrentStockList, triggerWorkflow } from '@/lib/stockApi';
+import { Search, ArrowLeft, Check, AlertCircle, Plus, X, Play, ExternalLink, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import {
+  searchStocks,
+  getStockDetail,
+  addStockToList,
+  getCurrentStockList,
+  triggerWorkflow,
+  findLatestWorkflowRun,
+  getAverageWorkflowDuration,
+  pollWorkflowUntilComplete
+} from '@/lib/stockApi';
 
 function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
   const [keyword, setKeyword] = useState('');
@@ -19,6 +28,11 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
   const [errorPopup, setErrorPopup] = useState(null);
   const [successPopup, setSuccessPopup] = useState(null);
   const [analysisPopup, setAnalysisPopup] = useState(null);
+
+  // 분석 진행 상태
+  const [progressModal, setProgressModal] = useState(null);
+  const pollingRef = useRef(null);
+  const startTimeRef = useRef(null);
 
   // 기존 종목 목록 로드
   useEffect(() => {
@@ -150,6 +164,25 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
     }
   };
 
+  // 시간 포맷팅 (초 -> "X분 Y초")
+  const formatTime = useCallback((seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    if (mins > 0) {
+      return `${mins}분 ${secs}초`;
+    }
+    return `${secs}초`;
+  }, []);
+
+  // 분석 취소
+  const handleCancelAnalysis = useCallback(() => {
+    if (pollingRef.current) {
+      pollingRef.current.cancelled = true;
+    }
+    setProgressModal(null);
+    setIsAnalyzing(false);
+  }, []);
+
   // 분석 시작
   const handleStartAnalysis = async () => {
     if (!selectedStock) return;
@@ -168,11 +201,12 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
       return;
     }
 
-    // PAT가 있으면 자동으로 워크플로우 트리거
+    // PAT가 있으면 자동으로 워크플로우 트리거 + 진행률 추적
     setIsAnalyzing(true);
+    const [owner, repo] = githubRepo.split('/');
 
     try {
-      const [owner, repo] = githubRepo.split('/');
+      // 1. 워크플로우 트리거
       await triggerWorkflow({
         owner,
         repo,
@@ -182,21 +216,129 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
         token: githubToken
       });
 
-      setAnalysisPopup({
-        name: selectedStock.name,
-        code: selectedStock.code,
-        workflowUrl,
-        triggered: true,
-        message: '분석이 자동으로 시작되었습니다! GitHub Actions에서 진행 상황을 확인할 수 있습니다.'
+      // 2. 평균 소요 시간 조회
+      const avgDuration = await getAverageWorkflowDuration({
+        owner,
+        repo,
+        token: githubToken,
+        workflowName: 'Daily Stock Analysis'
       });
-    } catch (error) {
-      setAnalysisPopup({
+
+      // 3. 진행률 모달 표시
+      startTimeRef.current = Date.now();
+      pollingRef.current = { cancelled: false };
+
+      setProgressModal({
         name: selectedStock.name,
         code: selectedStock.code,
         workflowUrl,
-        triggered: false,
-        error: true,
-        message: error.message || '워크플로우 트리거에 실패했습니다. GitHub Actions 페이지에서 수동으로 시작해주세요.'
+        status: 'finding',
+        statusText: '워크플로우 검색 중...',
+        elapsedSec: 0,
+        estimatedSec: avgDuration,
+        progress: 0,
+        runUrl: null
+      });
+
+      // 4. 새로 시작된 워크플로우 찾기
+      const newRun = await findLatestWorkflowRun({
+        owner,
+        repo,
+        token: githubToken,
+        maxWaitMs: 30000,
+        pollIntervalMs: 2000
+      });
+
+      if (pollingRef.current?.cancelled) return;
+
+      if (!newRun) {
+        setProgressModal(prev => ({
+          ...prev,
+          status: 'error',
+          statusText: '워크플로우를 찾을 수 없습니다',
+        }));
+        return;
+      }
+
+      // 5. 워크플로우 상태 폴링
+      setProgressModal(prev => ({
+        ...prev,
+        status: 'running',
+        statusText: '분석 진행 중...',
+        runUrl: newRun.htmlUrl
+      }));
+
+      // 진행률 업데이트 인터벌
+      const progressInterval = setInterval(() => {
+        if (pollingRef.current?.cancelled) {
+          clearInterval(progressInterval);
+          return;
+        }
+
+        const elapsedMs = Date.now() - startTimeRef.current;
+        const elapsedSec = elapsedMs / 1000;
+        const progress = Math.min((elapsedSec / avgDuration) * 100, 95); // 최대 95%
+
+        setProgressModal(prev => prev ? {
+          ...prev,
+          elapsedSec,
+          progress
+        } : null);
+      }, 1000);
+
+      // 폴링으로 완료 대기
+      const finalRun = await pollWorkflowUntilComplete({
+        owner,
+        repo,
+        runId: newRun.id,
+        token: githubToken,
+        pollIntervalMs: 10000,
+        maxWaitMs: 600000,
+        onProgress: ({ status, conclusion }) => {
+          if (pollingRef.current?.cancelled) return;
+
+          let statusText = '분석 진행 중...';
+          if (status === 'queued') statusText = '대기 중...';
+          else if (status === 'in_progress') statusText = '분석 진행 중...';
+
+          setProgressModal(prev => prev ? {
+            ...prev,
+            status: status === 'completed' ? (conclusion === 'success' ? 'success' : 'failed') : 'running',
+            statusText
+          } : null);
+        }
+      });
+
+      clearInterval(progressInterval);
+
+      if (pollingRef.current?.cancelled) return;
+
+      // 6. 완료 처리
+      const success = finalRun.conclusion === 'success';
+      setProgressModal(prev => prev ? {
+        ...prev,
+        status: success ? 'success' : 'failed',
+        statusText: success ? '분석 완료!' : '분석 실패',
+        progress: 100,
+        elapsedSec: (Date.now() - startTimeRef.current) / 1000
+      } : null);
+
+    } catch (error) {
+      console.error('분석 오류:', error);
+      setProgressModal(prev => prev ? {
+        ...prev,
+        status: 'error',
+        statusText: error.message || '오류가 발생했습니다'
+      } : {
+        name: selectedStock.name,
+        code: selectedStock.code,
+        workflowUrl,
+        status: 'error',
+        statusText: error.message || '워크플로우 트리거에 실패했습니다',
+        elapsedSec: 0,
+        estimatedSec: 0,
+        progress: 0,
+        runUrl: null
       });
     } finally {
       setIsAnalyzing(false);
@@ -479,7 +621,7 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
         </div>
       )}
 
-      {/* 분석 시작 팝업 */}
+      {/* 분석 시작 팝업 (PAT 없을 때) */}
       {analysisPopup && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-sm sm:max-w-md">
@@ -525,6 +667,119 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
                 >
                   닫기
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 분석 진행률 모달 (PAT 있을 때) */}
+      {progressModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-sm sm:max-w-md">
+            <CardHeader className="relative pb-2">
+              <CardTitle className={`flex items-center gap-2 text-base sm:text-lg pr-8 ${
+                progressModal.status === 'success' ? 'text-green-600' :
+                progressModal.status === 'failed' || progressModal.status === 'error' ? 'text-red-500' :
+                'text-blue-600'
+              }`}>
+                {progressModal.status === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                ) : progressModal.status === 'failed' || progressModal.status === 'error' ? (
+                  <XCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                ) : (
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 animate-spin" />
+                )}
+                {progressModal.status === 'success' ? '분석 완료' :
+                 progressModal.status === 'failed' ? '분석 실패' :
+                 progressModal.status === 'error' ? '오류 발생' :
+                 '분석 진행 중'}
+              </CardTitle>
+              {(progressModal.status === 'success' || progressModal.status === 'failed' || progressModal.status === 'error') && (
+                <button
+                  onClick={() => setProgressModal(null)}
+                  className="absolute right-3 top-3 sm:right-4 sm:top-4 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs sm:text-sm">
+                <strong>{progressModal.name}</strong> ({progressModal.code})
+              </p>
+
+              {/* 진행률 바 */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{progressModal.statusText}</span>
+                  <span>{Math.round(progressModal.progress)}%</span>
+                </div>
+                <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 rounded-full ${
+                      progressModal.status === 'success' ? 'bg-green-500' :
+                      progressModal.status === 'failed' || progressModal.status === 'error' ? 'bg-red-500' :
+                      'bg-blue-500'
+                    }`}
+                    style={{ width: `${progressModal.progress}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* 시간 정보 */}
+              <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
+                <span>경과: {formatTime(progressModal.elapsedSec)}</span>
+                {progressModal.estimatedSec > 0 && progressModal.status !== 'success' && (
+                  <span>예상: {formatTime(progressModal.estimatedSec)}</span>
+                )}
+              </div>
+
+              {/* 버튼 */}
+              <div className="space-y-2 pt-2">
+                {progressModal.runUrl && (
+                  <Button
+                    onClick={() => window.open(progressModal.runUrl, '_blank')}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    GitHub에서 확인
+                  </Button>
+                )}
+
+                {progressModal.status === 'success' && (
+                  <Button
+                    onClick={() => {
+                      setProgressModal(null);
+                      window.location.reload(); // 새로고침으로 결과 반영
+                    }}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    <Check className="w-4 h-4 mr-2" />
+                    결과 확인하기
+                  </Button>
+                )}
+
+                {(progressModal.status === 'failed' || progressModal.status === 'error') && (
+                  <Button
+                    onClick={() => setProgressModal(null)}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    닫기
+                  </Button>
+                )}
+
+                {progressModal.status !== 'success' && progressModal.status !== 'failed' && progressModal.status !== 'error' && (
+                  <Button
+                    onClick={handleCancelAnalysis}
+                    variant="outline"
+                    className="w-full text-muted-foreground"
+                  >
+                    백그라운드에서 계속
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
