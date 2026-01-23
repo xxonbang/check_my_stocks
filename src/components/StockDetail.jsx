@@ -2,7 +2,8 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Minus, Cpu, FileText, Brain, ChevronRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Cpu, ChevronRight } from 'lucide-react';
+import { formatValue } from '@/lib/formatNumber';
 
 function StockDetail({ stock }) {
   if (!stock) {
@@ -35,40 +36,6 @@ function StockDetail({ stock }) {
       default:
         return <Minus className="w-6 h-6 text-gray-500" />;
     }
-  };
-
-  const formatNumber = (num) => {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  };
-
-  const formatValue = (value) => {
-    if (value === null || value === undefined || value === 'N/A' || value === '') return '-';
-    const str = String(value);
-
-    // 이미 콤마가 있거나 특수문자(%, 억, 조, 백만 등)가 포함된 경우 그대로 반환
-    if (str.includes(',') || str.includes('%') || str.includes('억') || str.includes('조') || str.includes('백만')) {
-      return str;
-    }
-
-    // 숫자만 있는 경우 콤마 추가
-    const numMatch = str.match(/^([+-]?)(\d+)(\.\d+)?$/);
-    if (numMatch) {
-      const sign = numMatch[1] || '';
-      const intPart = numMatch[2];
-      const decPart = numMatch[3] || '';
-      return sign + formatNumber(intPart) + decPart;
-    }
-
-    // 숫자+단위 형태 (예: "5849579주")
-    const numUnitMatch = str.match(/^([+-]?)(\d+)(.*)$/);
-    if (numUnitMatch && /^\d+$/.test(numUnitMatch[2])) {
-      const sign = numUnitMatch[1] || '';
-      const numPart = numUnitMatch[2];
-      const unitPart = numUnitMatch[3] || '';
-      return sign + formatNumber(numPart) + unitPart;
-    }
-
-    return str;
   };
 
   const isPositiveChange = (value) => {

@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { formatValue } from '@/lib/formatNumber';
 
 function StockCard({ stock }) {
   const { code, name, extracted_data, prediction } = stock;
@@ -49,44 +50,44 @@ function StockCard({ stock }) {
         <div className="space-y-3">
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-bold">
-              {extracted_data?.currentPrice || '-'}
+              {formatValue(extracted_data?.currentPrice)}
             </span>
             <span className={`text-sm font-medium ${isPositive ? 'text-red-500' : 'text-blue-500'}`}>
-              {extracted_data?.priceChange} ({extracted_data?.changePercent})
+              {formatValue(extracted_data?.priceChange)} ({extracted_data?.changePercent})
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="flex justify-between py-1 border-b">
               <span className="text-muted-foreground">거래량</span>
-              <span className="font-medium">{extracted_data?.volume || '-'}</span>
+              <span className="font-medium">{formatValue(extracted_data?.volume)}</span>
             </div>
             <div className="flex justify-between py-1 border-b">
               <span className="text-muted-foreground">시가총액</span>
-              <span className="font-medium">{extracted_data?.marketCap || '-'}</span>
+              <span className="font-medium">{formatValue(extracted_data?.marketCap)}</span>
             </div>
             <div className="flex justify-between py-1 border-b">
               <span className="text-muted-foreground">PER</span>
-              <span className="font-medium">{extracted_data?.per || '-'}</span>
+              <span className="font-medium">{formatValue(extracted_data?.per)}</span>
             </div>
             <div className="flex justify-between py-1 border-b">
               <span className="text-muted-foreground">PBR</span>
-              <span className="font-medium">{extracted_data?.pbr || '-'}</span>
+              <span className="font-medium">{formatValue(extracted_data?.pbr)}</span>
             </div>
             <div className="flex justify-between py-1 border-b">
               <span className="text-muted-foreground">52주 최고</span>
-              <span className="font-medium">{extracted_data?.high52week || '-'}</span>
+              <span className="font-medium">{formatValue(extracted_data?.high52week)}</span>
             </div>
             <div className="flex justify-between py-1 border-b">
               <span className="text-muted-foreground">52주 최저</span>
-              <span className="font-medium">{extracted_data?.low52week || '-'}</span>
+              <span className="font-medium">{formatValue(extracted_data?.low52week)}</span>
             </div>
           </div>
 
           {extracted_data?.foreignOwnership && (
             <div className="flex justify-between py-1 text-sm">
               <span className="text-muted-foreground">외국인 보유율</span>
-              <span className="font-medium">{extracted_data.foreignOwnership}</span>
+              <span className="font-medium">{formatValue(extracted_data.foreignOwnership)}</span>
             </div>
           )}
         </div>
