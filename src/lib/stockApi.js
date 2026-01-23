@@ -452,30 +452,38 @@ export async function getAverageWorkflowDuration({ owner, repo, token, workflowN
 }
 
 /**
+ * 현재 최신 워크플로우 ID 가져오기 (트리거 전에 호출)
+ * @param {Object} options
+ * @param {string} options.owner - 레포지토리 소유자
+ * @param {string} options.repo - 레포지토리 이름
+ * @param {string} options.token - GitHub PAT
+ * @returns {Promise<number|null>} - 최신 워크플로우 ID 또는 null
+ */
+export async function getLatestRunId({ owner, repo, token }) {
+  try {
+    const runs = await getWorkflowRuns({ owner, repo, token, limit: 1 });
+    if (runs.length > 0) {
+      return runs[0].id;
+    }
+  } catch (e) {
+    // 무시
+  }
+  return null;
+}
+
+/**
  * 가장 최근에 시작된 워크플로우 찾기 (트리거 직후 호출)
  * @param {Object} options
  * @param {string} options.owner - 레포지토리 소유자
  * @param {string} options.repo - 레포지토리 이름
  * @param {string} options.token - GitHub PAT
+ * @param {number|null} options.lastKnownRunId - 트리거 전 최신 워크플로우 ID
  * @param {number} options.maxWaitMs - 최대 대기 시간 (기본: 30초)
  * @param {number} options.pollIntervalMs - 폴링 간격 (기본: 3초)
  * @returns {Promise<Object|null>} - 워크플로우 실행 정보 또는 null
  */
-export async function findLatestWorkflowRun({ owner, repo, token, maxWaitMs = 30000, pollIntervalMs = 3000 }) {
+export async function findLatestWorkflowRun({ owner, repo, token, lastKnownRunId = null, maxWaitMs = 30000, pollIntervalMs = 3000 }) {
   const triggerTime = Date.now();
-  // 트리거 시점 기준 1분 이내에 생성된 워크플로우를 찾음
-  const triggerTimeThreshold = new Date(triggerTime - 60000).toISOString();
-
-  // 트리거 직전의 최신 워크플로우 ID 기억
-  let lastKnownRunId = null;
-  try {
-    const runs = await getWorkflowRuns({ owner, repo, token, limit: 1 });
-    if (runs.length > 0) {
-      lastKnownRunId = runs[0].id;
-    }
-  } catch (e) {
-    // 무시
-  }
 
   // 새 워크플로우가 나타날 때까지 폴링
   let pollCount = 0;
@@ -488,15 +496,18 @@ export async function findLatestWorkflowRun({ owner, repo, token, maxWaitMs = 30
       const runs = await getWorkflowRuns({ owner, repo, token, limit: 5 });
 
       // 새로운 워크플로우 찾기:
-      // 1. 트리거 이후에 생성된 것 (createdAt 기준)
-      // 2. 이전에 알던 ID와 다른 것
-      // 3. 상태는 queued, in_progress, 또는 최근 completed 모두 허용
+      // 1. 이전에 알던 ID와 다른 것
+      // 2. 또는 트리거 이후에 생성된 것 (createdAt 기준)
       const newRun = runs.find(run => {
         const createdAt = new Date(run.createdAt).getTime();
         const isNew = run.id !== lastKnownRunId;
         const isRecent = createdAt > (triggerTime - 60000); // 트리거 1분 전 이후
 
-        return isNew && isRecent;
+        // lastKnownRunId가 있으면 ID 비교, 없으면 시간으로 비교
+        if (lastKnownRunId) {
+          return isNew;
+        }
+        return isRecent;
       });
 
       if (newRun) {

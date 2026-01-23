@@ -14,6 +14,7 @@ import {
   addStockToList,
   getCurrentStockList,
   triggerWorkflow,
+  getLatestRunId,
   findLatestWorkflowRun,
   getAverageWorkflowDuration,
   pollWorkflowUntilComplete
@@ -251,6 +252,13 @@ function StockSearch({ isAdmin, githubToken, githubRepo, onAnalysisComplete, exi
     const [owner, repo] = githubRepo.split('/');
 
     try {
+      // 트리거 전에 현재 최신 워크플로우 ID 저장
+      const lastKnownRunId = await getLatestRunId({
+        owner,
+        repo,
+        token: githubToken
+      });
+
       await triggerWorkflow({
         owner,
         repo,
@@ -289,6 +297,7 @@ function StockSearch({ isAdmin, githubToken, githubRepo, onAnalysisComplete, exi
         owner,
         repo,
         token: githubToken,
+        lastKnownRunId,
         maxWaitMs: 30000,
         pollIntervalMs: 2000
       });
