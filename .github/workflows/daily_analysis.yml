@@ -83,11 +83,16 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
-          # 원격의 최신 상태를 가져와서 그 위에 변경사항 적용
+          # 원격의 최신 상태를 가져와서 rebase
           git fetch origin main
-          git reset --soft origin/main
+          git stash push -m "analysis-results" -- data/ public/
+          git reset --hard origin/main
+          git stash pop || true
 
-          git add data/ public/
+          # 데이터 파일만 커밋 (소스 코드는 제외)
+          git add data/analysis_results.json data/scrape_metadata.json data/stocks.json || true
+          git add public/data/ public/screenshots/ || true
+
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
