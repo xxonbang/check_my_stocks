@@ -52,15 +52,16 @@ const visionProviders = {
   cloudflare: { name: "Cloudflare (Llama Vision)", enabled: !!(CF_ACCOUNT_ID && CF_API_TOKEN), failed: false },
 };
 
-// 텍스트 생성 프로바이더 (리포트 작성용)
+// 텍스트 생성 프로바이더 (리포트 작성용) - Gemini 우선
 const textProviders = {
+  gemini: { name: "Gemini API", enabled: GEMINI_API_KEYS.length > 0, failed: false },
   groq: { name: "Groq (Llama 3.3)", enabled: !!GROQ_API_KEY, failed: false },
   openrouter: { name: "OpenRouter", enabled: !!OPENROUTER_API_KEY, failed: false },
-  gemini: { name: "Gemini API", enabled: GEMINI_API_KEYS.length > 0, failed: false },
 };
 
-// 추론 모델 프로바이더 (예측용)
+// 추론 모델 프로바이더 (예측용) - Gemini 우선
 const reasoningProviders = {
+  gemini: { name: "Gemini API", enabled: GEMINI_API_KEYS.length > 0, failed: false },
   openrouter_deepseek: { name: "OpenRouter (DeepSeek-R1)", enabled: !!OPENROUTER_API_KEY, failed: false },
   openrouter_qwen: { name: "OpenRouter (Qwen QwQ)", enabled: !!OPENROUTER_API_KEY, failed: false },
   groq: { name: "Groq (Llama 3.3)", enabled: !!GROQ_API_KEY, failed: false },
@@ -878,12 +879,12 @@ async function extractDataWithVision(prompt, imageBase64, stockName) {
 }
 
 // ============================================
-// Phase 2: 리포트 생성 - Groq 텍스트 모델 (초고속)
+// Phase 2: 리포트 생성 - Gemini 우선 (고품질)
 // ============================================
 
 async function generateReportWithText(prompt, stockName) {
-  // Groq 텍스트 모델 우선 (초고속)
-  const providerOrder = ["groq", "openrouter", "gemini"];
+  // Gemini 텍스트 모델 우선 (고품질)
+  const providerOrder = ["gemini", "groq", "openrouter"];
 
   if (currentTextProvider && textProviders[currentTextProvider].enabled && !textProviders[currentTextProvider].failed) {
     providerOrder.splice(providerOrder.indexOf(currentTextProvider), 1);
@@ -938,12 +939,12 @@ async function generateReportWithText(prompt, stockName) {
 }
 
 // ============================================
-// Phase 3: 예측 생성 - 추론 모델 (DeepSeek-R1)
+// Phase 3: 예측 생성 - Gemini 우선 (고품질)
 // ============================================
 
 async function generatePredictionWithReasoning(prompt, stockName) {
-  // OpenRouter 추론 모델 우선
-  const providerOrder = ["openrouter_deepseek", "openrouter_qwen", "groq"];
+  // Gemini 우선 (고품질), DeepSeek-R1/Groq은 fallback
+  const providerOrder = ["gemini", "openrouter_deepseek", "openrouter_qwen", "groq"];
 
   if (currentReasoningProvider && reasoningProviders[currentReasoningProvider].enabled && !reasoningProviders[currentReasoningProvider].failed) {
     providerOrder.splice(providerOrder.indexOf(currentReasoningProvider), 1);
@@ -962,6 +963,9 @@ async function generatePredictionWithReasoning(prompt, stockName) {
       let result;
 
       switch (providerKey) {
+        case "gemini":
+          result = await callGeminiText(prompt);
+          break;
         case "openrouter_deepseek":
         case "openrouter_qwen":
           result = await callOpenRouterReasoning(prompt);
@@ -1025,6 +1029,7 @@ async function analyzeSingleStock(stock) {
     }
 
     console.log(`[${stock.name}] OCR Done - Price: ${extractedData.currentPrice}`);
+    const ocrProvider = currentVisionProvider ? visionProviders[currentVisionProvider]?.name : "Unknown";
 
     // 데이터 검증
     const warnings = validateExtractedData(extractedData, stock.name);
@@ -1032,25 +1037,27 @@ async function analyzeSingleStock(stock) {
     // 짧은 대기 (rate limit 방지)
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // ========== Phase 2: Report Generation (Text - Groq 초고속) ==========
-    console.log(`[${stock.name}] Phase 2: Report Generation (Groq Fast)`);
+    // ========== Phase 2: Report Generation (Text - Gemini 고품질) ==========
+    console.log(`[${stock.name}] Phase 2: Report Generation (Gemini)`);
     const reportPrompt = buildReportPrompt(stock, extractedData);
     const report = await generateReportWithText(reportPrompt, stock.name);
 
     console.log(`[${stock.name}] Report Done`);
+    const reportProvider = currentTextProvider ? textProviders[currentTextProvider]?.name : "Unknown";
 
     // 짧은 대기
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // ========== Phase 3: Prediction (Reasoning - DeepSeek-R1) ==========
-    console.log(`[${stock.name}] Phase 3: Prediction (Reasoning Model)`);
+    // ========== Phase 3: Prediction (Gemini 고품질) ==========
+    console.log(`[${stock.name}] Phase 3: Prediction (Gemini)`);
     const predictionPrompt = buildPredictionPrompt(stock, extractedData, report);
     const predictionResult = await generatePredictionWithReasoning(predictionPrompt, stock.name);
     const prediction = predictionResult ? parseJsonResponse(predictionResult, `${stock.name} Prediction`) : null;
 
     console.log(`[${stock.name}] Prediction Done`);
+    const predictionProvider = currentReasoningProvider ? reasoningProviders[currentReasoningProvider]?.name : "Unknown";
 
-    // 결과 조합
+    // 결과 조합 (종목별 파이프라인 정보 포함)
     const result = {
       code: stock.code,
       name: stock.name,
@@ -1063,6 +1070,11 @@ async function analyzeSingleStock(stock) {
         overallSentiment: "Neutral",
         keyRisks: [],
         keyCatalysts: []
+      },
+      pipeline: {
+        ocr: ocrProvider,
+        report: reportProvider,
+        prediction: predictionProvider
       }
     };
 
@@ -1085,7 +1097,7 @@ async function analyzeSingleStock(stock) {
 
 async function analyzeStocks(stocks) {
   console.log(`\nAnalyzing ${stocks.length} stocks with 3-phase pipeline...`);
-  console.log("Pipeline: OCR (Vision) → Report (Groq Fast) → Prediction (Reasoning)\n");
+  console.log("Pipeline: OCR (Gemini) → Report (Gemini) → Prediction (Gemini)\n");
 
   const results = [];
 
@@ -1108,9 +1120,9 @@ async function analyzeStocks(stocks) {
 async function main() {
   console.log("\n=== Stock Analyzer Started (3-Phase Pipeline) ===");
   console.log(`Timestamp: ${new Date().toISOString()}`);
-  console.log("Phase 1 (OCR): Gemini (Best for Chart) → OpenRouter → Groq → Cloudflare");
-  console.log("Phase 2 (Report): Groq (Fast) → OpenRouter → Gemini");
-  console.log("Phase 3 (Prediction): DeepSeek-R1 → Groq\n");
+  console.log("Phase 1 (OCR): Gemini → OpenRouter → Groq → Cloudflare");
+  console.log("Phase 2 (Report): Gemini → Groq → OpenRouter");
+  console.log("Phase 3 (Prediction): Gemini → DeepSeek-R1 → Groq\n");
 
   const stocks = loadStocks();
   console.log(`Loaded ${stocks.length} stocks`);

@@ -13,7 +13,7 @@ function StockDetail({ stock }) {
     );
   }
 
-  const { code, name, extracted_data, prediction, ai_report } = stock;
+  const { code, name, extracted_data, prediction, ai_report, pipeline } = stock;
 
   const getPredictionBadge = () => {
     switch (prediction) {
@@ -332,7 +332,7 @@ function StockDetail({ stock }) {
       </div>
 
       {/* 우측: AI 분석 리포트 */}
-      <div>
+      <div className="space-y-4">
         <Card className="h-full">
           <CardHeader>
             <CardTitle className="text-lg">AI 분석 리포트</CardTitle>
@@ -345,6 +345,31 @@ function StockDetail({ stock }) {
             </div>
           </CardContent>
         </Card>
+
+        {/* AI 파이프라인 정보 */}
+        {pipeline && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground">AI 분석 파이프라인</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="bg-purple-50 p-2 rounded text-center">
+                  <p className="text-muted-foreground mb-1">OCR</p>
+                  <p className="font-medium text-purple-700">{pipeline.ocr || '-'}</p>
+                </div>
+                <div className="bg-blue-50 p-2 rounded text-center">
+                  <p className="text-muted-foreground mb-1">리포트</p>
+                  <p className="font-medium text-blue-700">{pipeline.report || '-'}</p>
+                </div>
+                <div className="bg-green-50 p-2 rounded text-center">
+                  <p className="text-muted-foreground mb-1">예측</p>
+                  <p className="font-medium text-green-700">{pipeline.prediction || '-'}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
