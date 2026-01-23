@@ -2,10 +2,14 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
+
+// Load .env.local for local development
+dotenv.config({ path: path.join(ROOT_DIR, ".env.local") });
 
 const STOCKS_PATH = path.join(ROOT_DIR, "data", "stocks.json");
 const SCREENSHOTS_DIR = path.join(ROOT_DIR, "public", "screenshots");
