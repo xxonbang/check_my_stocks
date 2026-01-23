@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, ArrowLeft, Check, AlertCircle, Plus, X, Play, ExternalLink, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  Search, Check, AlertCircle, Plus, X, Play, ExternalLink,
+  Loader2, CheckCircle2, XCircle, TrendingUp, TrendingDown, Minus,
+  ArrowLeft, RefreshCw, Cpu, ChevronRight
+} from 'lucide-react';
 import {
   searchStocks,
   getStockDetail,
@@ -12,8 +18,13 @@ import {
   getAverageWorkflowDuration,
   pollWorkflowUntilComplete
 } from '@/lib/stockApi';
+import { formatValue } from '@/lib/formatNumber';
 
-function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
+function StockSearch({ isAdmin, githubToken, githubRepo, onAnalysisComplete, existingAnalysisData }) {
+  // 뷰 모드: 'search' | 'result'
+  const [viewMode, setViewMode] = useState('search');
+
+  // 검색 관련 상태
   const [keyword, setKeyword] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
@@ -23,6 +34,10 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
   const [existingStocks, setExistingStocks] = useState([]);
   const [isAdding, setIsAdding] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // 분석 결과 상태
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [isLoadingResult, setIsLoadingResult] = useState(false);
 
   // 팝업 상태
   const [errorPopup, setErrorPopup] = useState(null);
@@ -97,7 +112,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
   const handleAddStock = async () => {
     if (!selectedStock || !stockDetail) return;
 
-    // 중복 체크
     const isDuplicate = existingStocks.some(s => s.code === selectedStock.code);
     if (isDuplicate) {
       setErrorPopup({
@@ -130,7 +144,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
         code: selectedStock.code
       });
 
-      // 기존 목록 갱신
       setExistingStocks([...existingStocks, {
         code: selectedStock.code,
         name: selectedStock.name
@@ -164,7 +177,7 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
     }
   };
 
-  // 시간 포맷팅 (초 -> "X분 Y초")
+  // 시간 포맷팅
   const formatTime = useCallback((seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -183,13 +196,46 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
     setIsAnalyzing(false);
   }, []);
 
+  // 분석 결과 가져오기
+  const fetchAnalysisResult = async (stockCode, retries = 5) => {
+    setIsLoadingResult(true);
+
+    for (let i = 0; i < retries; i++) {
+      try {
+        // 캐시 무효화를 위해 timestamp 추가
+        const response = await fetch(`${import.meta.env.BASE_URL}data/analysis_results.json?t=${Date.now()}`);
+        if (!response.ok) throw new Error('Failed to fetch');
+
+        const data = await response.json();
+        const stock = data.stocks?.find(s => s.code === stockCode);
+
+        if (stock) {
+          setAnalysisResult(stock);
+          setViewMode('result');
+          setIsLoadingResult(false);
+          return stock;
+        }
+      } catch (error) {
+        console.error('Fetch attempt failed:', error);
+      }
+
+      // 재시도 전 대기 (배포 완료 대기)
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+    }
+
+    setIsLoadingResult(false);
+    return null;
+  };
+
   // 분석 시작
   const handleStartAnalysis = async () => {
     if (!selectedStock) return;
 
     const workflowUrl = `https://github.com/${githubRepo}/actions/workflows/daily_analysis.yml`;
 
-    // PAT가 없으면 기존 방식(GitHub 페이지 열기)
+    // PAT가 없으면 기존 방식
     if (!githubToken) {
       setAnalysisPopup({
         name: selectedStock.name,
@@ -201,12 +247,10 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
       return;
     }
 
-    // PAT가 있으면 자동으로 워크플로우 트리거 + 진행률 추적
     setIsAnalyzing(true);
     const [owner, repo] = githubRepo.split('/');
 
     try {
-      // 1. 워크플로우 트리거
       await triggerWorkflow({
         owner,
         repo,
@@ -216,7 +260,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
         token: githubToken
       });
 
-      // 2. 평균 소요 시간 조회
       const avgDuration = await getAverageWorkflowDuration({
         owner,
         repo,
@@ -224,7 +267,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
         workflowName: 'Daily Stock Analysis'
       });
 
-      // 3. 진행률 모달 표시
       startTimeRef.current = Date.now();
       pollingRef.current = { cancelled: false };
 
@@ -240,7 +282,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
         runUrl: null
       });
 
-      // 4. 새로 시작된 워크플로우 찾기
       const newRun = await findLatestWorkflowRun({
         owner,
         repo,
@@ -260,7 +301,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
         return;
       }
 
-      // 5. 워크플로우 상태 폴링
       setProgressModal(prev => ({
         ...prev,
         status: 'running',
@@ -268,7 +308,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
         runUrl: newRun.htmlUrl
       }));
 
-      // 진행률 업데이트 인터벌
       const progressInterval = setInterval(() => {
         if (pollingRef.current?.cancelled) {
           clearInterval(progressInterval);
@@ -277,7 +316,7 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
 
         const elapsedMs = Date.now() - startTimeRef.current;
         const elapsedSec = elapsedMs / 1000;
-        const progress = Math.min((elapsedSec / avgDuration) * 100, 95); // 최대 95%
+        const progress = Math.min((elapsedSec / avgDuration) * 100, 95);
 
         setProgressModal(prev => prev ? {
           ...prev,
@@ -286,7 +325,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
         } : null);
       }, 1000);
 
-      // 폴링으로 완료 대기
       const finalRun = await pollWorkflowUntilComplete({
         owner,
         repo,
@@ -313,7 +351,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
 
       if (pollingRef.current?.cancelled) return;
 
-      // 6. 완료 처리
       const success = finalRun.conclusion === 'success';
       setProgressModal(prev => prev ? {
         ...prev,
@@ -345,17 +382,228 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
     }
   };
 
+  // 결과 확인하기 버튼 핸들러
+  const handleViewResult = async () => {
+    if (!progressModal) return;
+
+    setProgressModal(prev => ({
+      ...prev,
+      statusText: '결과 로딩 중...'
+    }));
+
+    // 배포 완료 대기 후 결과 가져오기
+    const result = await fetchAnalysisResult(progressModal.code);
+
+    if (result) {
+      setProgressModal(null);
+    } else {
+      // 결과를 찾을 수 없으면 포트폴리오로 이동
+      setProgressModal(null);
+      if (onAnalysisComplete) {
+        onAnalysisComplete(progressModal.code);
+      }
+    }
+  };
+
+  // 검색 화면으로 돌아가기
+  const handleBackToSearch = () => {
+    setViewMode('search');
+    setAnalysisResult(null);
+  };
+
+  // 예측 배지
+  const getPredictionBadge = (prediction) => {
+    switch (prediction) {
+      case 'Bullish':
+        return <Badge variant="success" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1">상승 전망</Badge>;
+      case 'Bearish':
+        return <Badge variant="destructive" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1">하락 전망</Badge>;
+      default:
+        return <Badge variant="secondary" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1">중립</Badge>;
+    }
+  };
+
+  const getPredictionIcon = (prediction) => {
+    switch (prediction) {
+      case 'Bullish':
+        return <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />;
+      case 'Bearish':
+        return <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />;
+      default:
+        return <Minus className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500" />;
+    }
+  };
+
+  // 분석 결과 뷰
+  if (viewMode === 'result' && analysisResult) {
+    const { code, name, extracted_data, prediction, ai_report, pipeline, outlook } = analysisResult;
+    const data = extracted_data || {};
+
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between gap-2">
+          <Button onClick={handleBackToSearch} variant="ghost" size="sm" className="px-2 sm:px-3">
+            <ArrowLeft className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">새 검색</span>
+          </Button>
+          <h2 className="text-lg sm:text-xl font-semibold flex-1 text-center">분석 결과</h2>
+          <div className="w-20"></div>
+        </div>
+
+        {/* AI 파이프라인 정보 */}
+        {pipeline && (
+          <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-2 sm:p-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Cpu className="w-3.5 h-3.5" />
+                <span className="font-medium">AI 분석 파이프라인</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1 text-xs">
+                <div className="flex items-center gap-1 bg-white px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-md border border-purple-200">
+                  <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                  <span className="font-medium text-purple-700">{pipeline.ocr?.replace(' API', '') || '-'}</span>
+                </div>
+                <ChevronRight className="w-3 h-3 text-slate-400" />
+                <div className="flex items-center gap-1 bg-white px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-md border border-blue-200">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <span className="font-medium text-blue-700">{pipeline.report?.replace(' API', '') || '-'}</span>
+                </div>
+                <ChevronRight className="w-3 h-3 text-slate-400" />
+                <div className="flex items-center gap-1 bg-white px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-md border border-green-200">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  <span className="font-medium text-green-700">{pipeline.prediction?.replace(' API', '') || '-'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 종목 정보 헤더 */}
+        <Card>
+          <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <CardTitle className="text-lg sm:text-xl truncate">{name}</CardTitle>
+                <p className="text-xs sm:text-sm text-muted-foreground">{code}</p>
+              </div>
+              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                {getPredictionIcon(prediction)}
+                {getPredictionBadge(prediction)}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">현재가</p>
+                <p className="text-sm sm:text-base font-semibold">{formatValue(data.currentPrice)}원</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">전일대비</p>
+                <p className={`text-sm sm:text-base font-semibold ${
+                  String(data.changePercent || '').includes('+') ? 'text-red-500' :
+                  String(data.changePercent || '').includes('-') ? 'text-blue-500' : ''
+                }`}>
+                  {data.priceChange} ({data.changePercent})
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">거래량</p>
+                <p className="text-sm sm:text-base font-semibold">{formatValue(data.volume)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">시가총액</p>
+                <p className="text-sm sm:text-base font-semibold">{formatValue(data.marketCap)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 전망 요약 */}
+        {outlook && (
+          <Card>
+            <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+              <CardTitle className="text-base sm:text-lg">투자 전망</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {outlook.shortTermOutlook && (
+                  <div className="p-3 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">단기 전망 ({outlook.shortTermOutlook.period})</p>
+                    <p className={`font-semibold ${
+                      outlook.shortTermOutlook.prediction === '상승' ? 'text-red-500' :
+                      outlook.shortTermOutlook.prediction === '하락' ? 'text-blue-500' : ''
+                    }`}>
+                      {outlook.shortTermOutlook.prediction}
+                    </p>
+                    {outlook.shortTermOutlook.priceRange && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        예상 범위: {formatValue(outlook.shortTermOutlook.priceRange.low)} ~ {formatValue(outlook.shortTermOutlook.priceRange.high)}원
+                      </p>
+                    )}
+                  </div>
+                )}
+                {outlook.longTermOutlook && (
+                  <div className="p-3 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">중기 전망 ({outlook.longTermOutlook.period})</p>
+                    <p className={`font-semibold ${
+                      outlook.longTermOutlook.prediction === '상승' ? 'text-red-500' :
+                      outlook.longTermOutlook.prediction === '하락' ? 'text-blue-500' : ''
+                    }`}>
+                      {outlook.longTermOutlook.prediction}
+                    </p>
+                    {outlook.longTermOutlook.targetPrice && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        목표가: {formatValue(outlook.longTermOutlook.targetPrice)}원
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* AI 분석 리포트 */}
+        {ai_report && (
+          <Card>
+            <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+              <CardTitle className="text-base sm:text-lg">AI 분석 리포트</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+              <div className="prose prose-sm max-w-none text-sm">
+                <ReactMarkdown>{ai_report}</ReactMarkdown>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 포트폴리오로 이동 버튼 */}
+        <div className="flex gap-2">
+          <Button
+            onClick={handleBackToSearch}
+            variant="outline"
+            className="flex-1"
+          >
+            <Search className="w-4 h-4 mr-2" />
+            새 종목 검색
+          </Button>
+          <Button
+            onClick={() => onAnalysisComplete && onAnalysisComplete(code)}
+            className="flex-1"
+          >
+            <Check className="w-4 h-4 mr-2" />
+            포트폴리오에서 보기
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // 검색 화면
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* 헤더 */}
-      <div className="flex items-center gap-2 sm:gap-4">
-        <Button onClick={onBack} variant="ghost" size="sm" className="px-2 sm:px-3">
-          <ArrowLeft className="w-4 h-4 sm:mr-2" />
-          <span className="hidden sm:inline">돌아가기</span>
-        </Button>
-        <h2 className="text-lg sm:text-xl font-semibold">종목 검색</h2>
-      </div>
-
       {/* 검색 영역 */}
       <Card>
         <CardHeader className="pb-2 sm:pb-4">
@@ -373,7 +621,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
               onKeyDown={handleKeyDown}
               placeholder="예: 삼성전자, 카카오"
               className="flex-1 px-3 sm:px-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              autoFocus
             />
             <Button
               onClick={handleSearch}
@@ -406,6 +653,7 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
             <div className="space-y-2">
               {searchResults.slice(0, 10).map((stock) => {
                 const isExisting = existingStocks.some(s => s.code === stock.code);
+                const hasAnalysis = existingAnalysisData?.stocks?.some(s => s.code === stock.code);
                 return (
                   <div
                     key={stock.code}
@@ -425,6 +673,11 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
                             분석 목록
                           </span>
                         )}
+                        {hasAnalysis && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                            분석 완료
+                          </span>
+                        )}
                       </div>
                     </div>
                     <Button
@@ -438,11 +691,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
                   </div>
                 );
               })}
-              {searchResults.length > 10 && (
-                <p className="text-xs sm:text-sm text-muted-foreground text-center py-2">
-                  상위 10개 결과만 표시됩니다.
-                </p>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -494,23 +742,20 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
               </div>
             </div>
 
-            {/* 버튼 영역 */}
             <div className="pt-3 sm:pt-4 border-t space-y-2 sm:space-y-3">
-              {/* 분석 시작 버튼 - 항상 표시 */}
               <Button
                 onClick={handleStartAnalysis}
                 disabled={isAnalyzing}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
                 {isAnalyzing ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
                   <Play className="w-4 h-4 mr-2" />
                 )}
                 분석 시작
               </Button>
 
-              {/* 분석 목록에 추가 버튼 */}
               {existingStocks.some(s => s.code === selectedStock.code) ? (
                 <div className="flex items-center justify-center gap-2 text-green-600 text-xs sm:text-sm py-1">
                   <Check className="w-4 h-4" />
@@ -524,7 +769,7 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
                   variant="outline"
                 >
                   {isAdding ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2" />
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
                     <Plus className="w-4 h-4 mr-2" />
                   )}
@@ -538,7 +783,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
                 </p>
               )}
 
-              {/* 다른 종목 검색 버튼 */}
               <Button
                 variant="outline"
                 onClick={() => {
@@ -577,10 +821,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
               <p className="text-xs sm:text-sm text-muted-foreground">
                 {errorPopup.message}
               </p>
-              <ul className="text-xs sm:text-sm text-muted-foreground list-disc list-inside space-y-1">
-                <li>종목명을 정확히 입력했는지 확인해주세요</li>
-                <li>띄어쓰기나 오타를 확인해주세요</li>
-              </ul>
               <Button onClick={() => setErrorPopup(null)} className="w-full">
                 확인
               </Button>
@@ -610,9 +850,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
                 <strong>{successPopup.name}</strong> ({successPopup.code})가
                 분석 목록에 추가되었습니다.
               </p>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                다음 분석 실행 시 포함됩니다.
-              </p>
               <Button onClick={() => setSuccessPopup(null)} className="w-full">
                 확인
               </Button>
@@ -626,15 +863,9 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-sm sm:max-w-md">
             <CardHeader className="relative pb-2">
-              <CardTitle className={`flex items-center gap-2 text-base sm:text-lg pr-8 ${
-                analysisPopup.triggered ? 'text-green-600' : analysisPopup.error ? 'text-orange-500' : 'text-blue-600'
-              }`}>
-                {analysisPopup.triggered ? (
-                  <Check className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                ) : (
-                  <Play className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                )}
-                {analysisPopup.triggered ? '분석 시작됨' : '분석 시작'}
+              <CardTitle className="flex items-center gap-2 text-blue-600 text-base sm:text-lg pr-8">
+                <Play className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                분석 시작
               </CardTitle>
               <button
                 onClick={() => setAnalysisPopup(null)}
@@ -647,18 +878,16 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
               <p className="text-xs sm:text-sm">
                 <strong>{analysisPopup.name}</strong> ({analysisPopup.code})
               </p>
-              <p className={`text-xs sm:text-sm ${analysisPopup.error ? 'text-orange-600' : 'text-muted-foreground'}`}>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {analysisPopup.message}
               </p>
               <div className="space-y-2">
                 <Button
-                  onClick={() => {
-                    window.open(analysisPopup.workflowUrl, '_blank');
-                  }}
-                  className={`w-full ${analysisPopup.triggered ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}
+                  onClick={() => window.open(analysisPopup.workflowUrl, '_blank')}
+                  className="w-full bg-green-600 hover:bg-green-700"
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
-                  {analysisPopup.triggered ? '진행 상황 확인' : 'GitHub Actions 열기'}
+                  GitHub Actions 열기
                 </Button>
                 <Button
                   variant="outline"
@@ -673,7 +902,7 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
         </div>
       )}
 
-      {/* 분석 진행률 모달 (PAT 있을 때) */}
+      {/* 분석 진행률 모달 */}
       {progressModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-sm sm:max-w-md">
@@ -695,7 +924,7 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
                  progressModal.status === 'error' ? '오류 발생' :
                  '분석 진행 중'}
               </CardTitle>
-              {(progressModal.status === 'success' || progressModal.status === 'failed' || progressModal.status === 'error') && (
+              {(progressModal.status === 'failed' || progressModal.status === 'error') && (
                 <button
                   onClick={() => setProgressModal(null)}
                   className="absolute right-3 top-3 sm:right-4 sm:top-4 text-muted-foreground hover:text-foreground"
@@ -709,7 +938,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
                 <strong>{progressModal.name}</strong> ({progressModal.code})
               </p>
 
-              {/* 진행률 바 */}
               <div className="space-y-2">
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>{progressModal.statusText}</span>
@@ -727,7 +955,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
                 </div>
               </div>
 
-              {/* 시간 정보 */}
               <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
                 <span>경과: {formatTime(progressModal.elapsedSec)}</span>
                 {progressModal.estimatedSec > 0 && progressModal.status !== 'success' && (
@@ -735,7 +962,6 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
                 )}
               </div>
 
-              {/* 버튼 */}
               <div className="space-y-2 pt-2">
                 {progressModal.runUrl && (
                   <Button
@@ -750,13 +976,15 @@ function StockSearch({ onBack, isAdmin, githubToken, githubRepo }) {
 
                 {progressModal.status === 'success' && (
                   <Button
-                    onClick={() => {
-                      setProgressModal(null);
-                      window.location.reload(); // 새로고침으로 결과 반영
-                    }}
+                    onClick={handleViewResult}
+                    disabled={isLoadingResult}
                     className="w-full bg-green-600 hover:bg-green-700"
                   >
-                    <Check className="w-4 h-4 mr-2" />
+                    {isLoadingResult ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Check className="w-4 h-4 mr-2" />
+                    )}
                     결과 확인하기
                   </Button>
                 )}

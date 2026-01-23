@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { BarChart3, LogIn, LogOut, RefreshCw, Search } from 'lucide-react';
+import { BarChart3, LogIn, LogOut, RefreshCw, Search, PieChart } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import StockDetail from '@/components/StockDetail';
 import LoginModal from '@/components/LoginModal';
@@ -20,41 +20,44 @@ function App() {
     return localStorage.getItem('isAdmin') === 'true';
   });
   const [githubPat, setGithubPat] = useState(() => {
-    // 우선순위: localStorage > 환경변수
     return localStorage.getItem('githubPat') || import.meta.env.VITE_GITHUB_PAT || '';
   });
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState('');
-  const [currentPage, setCurrentPage] = useState('main'); // 'main' | 'search'
+  const [mainTab, setMainTab] = useState('portfolio'); // 'portfolio' | 'search'
+
+  // 데이터 로드 함수 (재사용 가능)
+  const fetchData = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.BASE_URL}data/analysis_results.json?t=${Date.now()}`);
+      if (!response.ok) {
+        throw new Error('Failed to load analysis data');
+      }
+      const jsonData = await response.json();
+      setData(jsonData);
+      if (jsonData.stocks && jsonData.stocks.length > 0 && !selectedStock) {
+        setSelectedStock(jsonData.stocks[0]);
+      }
+      return jsonData;
+    } catch (err) {
+      setError(err.message);
+      return null;
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`${import.meta.env.BASE_URL}data/analysis_results.json`);
-        if (!response.ok) {
-          throw new Error('Failed to load analysis data');
-        }
-        const jsonData = await response.json();
-        setData(jsonData);
-        if (jsonData.stocks && jsonData.stocks.length > 0) {
-          setSelectedStock(jsonData.stocks[0]);
-        }
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
+    const loadInitialData = async () => {
+      await fetchData();
+      setLoading(false);
     };
-
-    fetchData();
+    loadInitialData();
   }, []);
 
   const handleLogin = (id, pw, pat = '') => {
     if (id === ADMIN_ID && pw === ADMIN_PW) {
       localStorage.setItem('isAdmin', 'true');
       setIsAdmin(true);
-      // PAT가 입력되면 저장 (입력 안 하면 기존 값 유지)
       if (pat) {
         localStorage.setItem('githubPat', pat);
         setGithubPat(pat);
@@ -69,16 +72,27 @@ function App() {
     localStorage.removeItem('isAdmin');
     localStorage.removeItem('githubPat');
     setIsAdmin(false);
-    // 환경변수 PAT가 있으면 그것으로 복원
     setGithubPat(import.meta.env.VITE_GITHUB_PAT || '');
   };
 
   const triggerAnalysis = () => {
-    // GitHub Actions workflow_dispatch 페이지로 이동
     const workflowUrl = `https://github.com/${GITHUB_REPO}/actions/workflows/daily_analysis.yml`;
     window.open(workflowUrl, '_blank');
     setAnalysisMessage('GitHub Actions 페이지에서 "Run workflow" 버튼을 클릭하세요.');
     setTimeout(() => setAnalysisMessage(''), 8000);
+  };
+
+  // 분석 완료 후 결과 보기
+  const handleViewAnalysisResult = async (stockCode) => {
+    // 데이터 새로고침
+    const newData = await fetchData();
+    if (newData) {
+      const stock = newData.stocks?.find(s => s.code === stockCode);
+      if (stock) {
+        setSelectedStock(stock);
+        setMainTab('portfolio');
+      }
+    }
   };
 
   if (loading) {
@@ -110,15 +124,6 @@ function App() {
                   {analysisMessage}
                 </span>
               )}
-              <Button
-                onClick={() => setCurrentPage(currentPage === 'search' ? 'main' : 'search')}
-                size="sm"
-                variant={currentPage === 'search' ? 'default' : 'outline'}
-                className="px-2 sm:px-3"
-              >
-                <Search className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">종목 검색</span>
-              </Button>
               {isAdmin ? (
                 <>
                   <Button
@@ -148,50 +153,71 @@ function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-6">
-        {currentPage === 'search' ? (
-          <StockSearch
-            onBack={() => setCurrentPage('main')}
-            isAdmin={isAdmin}
-            githubToken={githubPat}
-            githubRepo={GITHUB_REPO}
-          />
-        ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 text-red-700 text-sm">
-            오류: {error}
-          </div>
-        ) : (
-          <>
-            <Dashboard data={data} />
+        {/* 메인 탭 네비게이션 */}
+        <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6">
+            <TabsTrigger value="portfolio" className="flex items-center gap-2 text-sm sm:text-base">
+              <PieChart className="w-4 h-4" />
+              <span>포트폴리오</span>
+            </TabsTrigger>
+            <TabsTrigger value="search" className="flex items-center gap-2 text-sm sm:text-base">
+              <Search className="w-4 h-4" />
+              <span>종목 검색</span>
+            </TabsTrigger>
+          </TabsList>
 
-            {data?.stocks && data.stocks.length > 0 && (
-              <Tabs
-                defaultValue={data.stocks[0]?.code}
-                onValueChange={(value) => {
-                  const stock = data.stocks.find(s => s.code === value);
-                  setSelectedStock(stock);
-                }}
-              >
-                <TabsList className="flex-wrap h-auto gap-1 mb-3 sm:mb-4 w-full justify-start overflow-x-auto">
-                  {data.stocks.map((stock) => (
-                    <TabsTrigger
-                      key={stock.code}
-                      value={stock.code}
-                      className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap"
-                    >
-                      {stock.name}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+          {/* 포트폴리오 탭 */}
+          <TabsContent value="portfolio" className="mt-0">
+            {error ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 text-red-700 text-sm">
+                오류: {error}
+              </div>
+            ) : (
+              <>
+                <Dashboard data={data} />
 
-                {data.stocks.map((stock) => (
-                  <TabsContent key={stock.code} value={stock.code}>
-                    <StockDetail stock={stock} />
-                  </TabsContent>
-                ))}
-              </Tabs>
+                {data?.stocks && data.stocks.length > 0 && (
+                  <Tabs
+                    value={selectedStock?.code || data.stocks[0]?.code}
+                    onValueChange={(value) => {
+                      const stock = data.stocks.find(s => s.code === value);
+                      setSelectedStock(stock);
+                    }}
+                  >
+                    <TabsList className="flex-wrap h-auto gap-1 mb-3 sm:mb-4 w-full justify-start overflow-x-auto">
+                      {data.stocks.map((stock) => (
+                        <TabsTrigger
+                          key={stock.code}
+                          value={stock.code}
+                          className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap"
+                        >
+                          {stock.name}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+
+                    {data.stocks.map((stock) => (
+                      <TabsContent key={stock.code} value={stock.code}>
+                        <StockDetail stock={stock} />
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                )}
+              </>
             )}
-          </>
-        )}
+          </TabsContent>
+
+          {/* 종목 검색 탭 */}
+          <TabsContent value="search" className="mt-0">
+            <StockSearch
+              isAdmin={isAdmin}
+              githubToken={githubPat}
+              githubRepo={GITHUB_REPO}
+              onAnalysisComplete={handleViewAnalysisResult}
+              existingAnalysisData={data}
+            />
+          </TabsContent>
+        </Tabs>
       </main>
 
       <footer className="border-t bg-white mt-8 sm:mt-12">

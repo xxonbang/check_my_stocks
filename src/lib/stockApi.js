@@ -458,11 +458,13 @@ export async function getAverageWorkflowDuration({ owner, repo, token, workflowN
  * @param {string} options.repo - 레포지토리 이름
  * @param {string} options.token - GitHub PAT
  * @param {number} options.maxWaitMs - 최대 대기 시간 (기본: 30초)
- * @param {number} options.pollIntervalMs - 폴링 간격 (기본: 2초)
+ * @param {number} options.pollIntervalMs - 폴링 간격 (기본: 3초)
  * @returns {Promise<Object|null>} - 워크플로우 실행 정보 또는 null
  */
-export async function findLatestWorkflowRun({ owner, repo, token, maxWaitMs = 30000, pollIntervalMs = 2000 }) {
-  const startTime = Date.now();
+export async function findLatestWorkflowRun({ owner, repo, token, maxWaitMs = 30000, pollIntervalMs = 3000 }) {
+  const triggerTime = Date.now();
+  // 트리거 시점 기준 1분 이내에 생성된 워크플로우를 찾음
+  const triggerTimeThreshold = new Date(triggerTime - 60000).toISOString();
 
   // 트리거 직전의 최신 워크플로우 ID 기억
   let lastKnownRunId = null;
@@ -476,15 +478,26 @@ export async function findLatestWorkflowRun({ owner, repo, token, maxWaitMs = 30
   }
 
   // 새 워크플로우가 나타날 때까지 폴링
-  while (Date.now() - startTime < maxWaitMs) {
-    try {
-      const runs = await getWorkflowRuns({ owner, repo, token, limit: 3 });
+  let pollCount = 0;
+  const maxPolls = Math.ceil(maxWaitMs / pollIntervalMs);
 
-      // 새로운 워크플로우 찾기 (queued 또는 in_progress 상태)
-      const newRun = runs.find(run =>
-        (run.status === 'queued' || run.status === 'in_progress') &&
-        run.id !== lastKnownRunId
-      );
+  while (pollCount < maxPolls) {
+    pollCount++;
+
+    try {
+      const runs = await getWorkflowRuns({ owner, repo, token, limit: 5 });
+
+      // 새로운 워크플로우 찾기:
+      // 1. 트리거 이후에 생성된 것 (createdAt 기준)
+      // 2. 이전에 알던 ID와 다른 것
+      // 3. 상태는 queued, in_progress, 또는 최근 completed 모두 허용
+      const newRun = runs.find(run => {
+        const createdAt = new Date(run.createdAt).getTime();
+        const isNew = run.id !== lastKnownRunId;
+        const isRecent = createdAt > (triggerTime - 60000); // 트리거 1분 전 이후
+
+        return isNew && isRecent;
+      });
 
       if (newRun) {
         return newRun;
@@ -493,8 +506,10 @@ export async function findLatestWorkflowRun({ owner, repo, token, maxWaitMs = 30
       console.error('워크플로우 검색 오류:', e);
     }
 
-    // 대기
-    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+    // 마지막 폴링이 아니면 대기
+    if (pollCount < maxPolls) {
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+    }
   }
 
   return null;
