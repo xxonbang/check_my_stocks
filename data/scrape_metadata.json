@@ -1,45 +1,9 @@
 {
-  "timestamp": "2026-01-23T23:12:32.524Z",
+  "timestamp": "2026-01-24T00:26:16.661Z",
   "results": [
     {
-      "code": "379810",
-      "name": "KODEX 미국나스닥100",
-      "success": true,
-      "error": null
-    },
-    {
-      "code": "390390",
-      "name": "KODEX 미국반도체",
-      "success": true,
-      "error": null
-    },
-    {
-      "code": "465580",
-      "name": "KODEX 미국빅테크TOP7Plus",
-      "success": true,
-      "error": null
-    },
-    {
-      "code": "360200",
-      "name": "ACE 미국S&P500",
-      "success": true,
-      "error": null
-    },
-    {
-      "code": "487230",
-      "name": "KODEX 미국AI전력핵심인프라",
-      "success": true,
-      "error": null
-    },
-    {
-      "code": "411060",
-      "name": "ACE KRX금현물",
-      "success": true,
-      "error": null
-    },
-    {
-      "code": "438080",
-      "name": "ACE 미국S&P500미국채혼합50",
+      "code": "090710",
+      "name": "휴림로봇",
       "success": true,
       "error": null
     }
