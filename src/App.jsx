@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { BarChart3, LogIn, LogOut, RefreshCw, Search, PieChart } from 'lucide-react';
+import { BarChart3, LogIn, LogOut, RefreshCw, Search, PieChart, Settings } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import StockDetail from '@/components/StockDetail';
 import LoginModal from '@/components/LoginModal';
 import StockSearch from '@/components/StockSearch';
+import StockManager from '@/components/StockManager';
 import { login, checkAuth, logout as authLogout, saveToken } from '@/lib/auth';
 
 const GITHUB_REPO = 'xxonbang/check_my_stocks';
@@ -160,7 +161,7 @@ function App() {
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-6">
         {/* 메인 탭 네비게이션 */}
         <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6">
+          <TabsList className={`grid w-full mb-4 sm:mb-6 ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="portfolio" className="flex items-center gap-2 text-sm sm:text-base">
               <PieChart className="w-4 h-4" />
               <span>포트폴리오</span>
@@ -169,6 +170,12 @@ function App() {
               <Search className="w-4 h-4" />
               <span>종목 검색</span>
             </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="manage" className="flex items-center gap-2 text-sm sm:text-base">
+                <Settings className="w-4 h-4" />
+                <span>종목 관리</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* 포트폴리오 탭 */}
@@ -222,6 +229,16 @@ function App() {
               existingAnalysisData={data}
             />
           </TabsContent>
+
+          {/* 종목 관리 탭 (관리자 전용) */}
+          {isAdmin && (
+            <TabsContent value="manage" className="mt-0">
+              <StockManager
+                githubToken={githubPat}
+                githubRepo={GITHUB_REPO}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 

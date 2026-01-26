@@ -175,6 +175,146 @@ export async function getCurrentStockList() {
   }
 }
 
+/**
+ * stocks.json에서 종목 수정 (GitHub API 사용)
+ * @param {string} oldCode - 기존 종목 코드
+ * @param {string} newCode - 새 종목 코드
+ * @param {string} newName - 새 종목명
+ * @param {string} token - GitHub 토큰
+ * @param {string} repo - GitHub 레포지토리 (owner/repo)
+ * @returns {Promise<boolean>} - 성공 여부
+ */
+export async function updateStockInList(oldCode, newCode, newName, token, repo) {
+  try {
+    const getResponse = await fetch(
+      `https://api.github.com/repos/${repo}/contents/data/stocks.json`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      }
+    );
+
+    if (!getResponse.ok) {
+      throw new Error('stocks.json을 가져올 수 없습니다.');
+    }
+
+    const fileData = await getResponse.json();
+    const currentContent = JSON.parse(atob(fileData.content));
+
+    // 종목 찾기
+    const stockIndex = currentContent.stocks.findIndex(s => s.code === oldCode);
+    if (stockIndex === -1) {
+      throw new Error('수정할 종목을 찾을 수 없습니다.');
+    }
+
+    // 코드 변경 시 중복 체크
+    if (oldCode !== newCode) {
+      const isDuplicate = currentContent.stocks.some(s => s.code === newCode);
+      if (isDuplicate) {
+        throw new Error('이미 존재하는 종목 코드입니다.');
+      }
+    }
+
+    // 종목 수정
+    currentContent.stocks[stockIndex] = { code: newCode, name: newName };
+
+    const updateResponse = await fetch(
+      `https://api.github.com/repos/${repo}/contents/data/stocks.json`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: `Update stock: ${newName} (${newCode})`,
+          content: btoa(unescape(encodeURIComponent(JSON.stringify(currentContent, null, 2) + '\n'))),
+          sha: fileData.sha
+        })
+      }
+    );
+
+    if (!updateResponse.ok) {
+      const errorData = await updateResponse.json();
+      throw new Error(errorData.message || '종목 수정에 실패했습니다.');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('종목 수정 오류:', error);
+    throw error;
+  }
+}
+
+/**
+ * stocks.json에서 종목 삭제 (GitHub API 사용)
+ * @param {string} code - 삭제할 종목 코드
+ * @param {string} token - GitHub 토큰
+ * @param {string} repo - GitHub 레포지토리 (owner/repo)
+ * @returns {Promise<boolean>} - 성공 여부
+ */
+export async function deleteStockFromList(code, token, repo) {
+  try {
+    const getResponse = await fetch(
+      `https://api.github.com/repos/${repo}/contents/data/stocks.json`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      }
+    );
+
+    if (!getResponse.ok) {
+      throw new Error('stocks.json을 가져올 수 없습니다.');
+    }
+
+    const fileData = await getResponse.json();
+    const currentContent = JSON.parse(atob(fileData.content));
+
+    // 종목 찾기
+    const stockIndex = currentContent.stocks.findIndex(s => s.code === code);
+    if (stockIndex === -1) {
+      throw new Error('삭제할 종목을 찾을 수 없습니다.');
+    }
+
+    const deletedStock = currentContent.stocks[stockIndex];
+
+    // 종목 삭제
+    currentContent.stocks.splice(stockIndex, 1);
+
+    const updateResponse = await fetch(
+      `https://api.github.com/repos/${repo}/contents/data/stocks.json`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: `Delete stock: ${deletedStock.name} (${code})`,
+          content: btoa(unescape(encodeURIComponent(JSON.stringify(currentContent, null, 2) + '\n'))),
+          sha: fileData.sha
+        })
+      }
+    );
+
+    if (!updateResponse.ok) {
+      const errorData = await updateResponse.json();
+      throw new Error(errorData.message || '종목 삭제에 실패했습니다.');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('종목 삭제 오류:', error);
+    throw error;
+  }
+}
+
 // ============================================
 // GitHub Actions 워크플로우 트리거 기능
 // ============================================

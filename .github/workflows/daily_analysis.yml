@@ -2,9 +2,8 @@ name: Daily Stock Analysis
 
 on:
   schedule:
-    # KST 오전 8시, 오후 1시, 오후 10시 (UTC 기준)
+    # KST 오전 8시, 오후 10시 (UTC 기준) - 하루 2회
     - cron: '0 23 * * *'  # KST 08:00
-    - cron: '0 4 * * *'   # KST 13:00
     - cron: '0 13 * * *'  # KST 22:00
   workflow_dispatch:
     inputs:
