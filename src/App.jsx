@@ -245,7 +245,7 @@ function App() {
       <footer className="border-t bg-white mt-8 sm:mt-12">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 text-center text-xs sm:text-sm text-muted-foreground">
           <p>Powered by Google Gemini 2.5 Flash</p>
-          <p className="mt-1">Data is updated 3 times daily via GitHub Actions</p>
+          <p className="mt-1">Data is updated 2 times daily via GitHub Actions</p>
         </div>
       </footer>
 
