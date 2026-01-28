@@ -264,6 +264,71 @@ function parseJsonResponse(text, context) {
 }
 
 // ============================================
+// 데이터 정규화 함수 (OCR 결과 형식 통일)
+// ============================================
+
+function normalizeNumericValue(value) {
+  if (value === null || value === undefined || value === 'N/A' || value === '') {
+    return value;
+  }
+
+  const str = String(value).trim();
+
+  // 이미 한국식 단위가 포함된 경우 그대로 반환 (예: "5조 2,689억", "87,897백만")
+  if (/[조억천백만]/.test(str)) {
+    return str;
+  }
+
+  // 퍼센트 값은 그대로 반환
+  if (str.includes('%')) {
+    return str;
+  }
+
+  // 콤마 제거 후 숫자 파싱
+  const cleanStr = str.replace(/,/g, '');
+  const num = parseFloat(cleanStr);
+
+  // 숫자로 변환 가능하면 숫자로, 아니면 원본 반환
+  return isNaN(num) ? str : num;
+}
+
+function normalizeExtractedData(data) {
+  if (!data) return data;
+
+  // 정규화할 가격/수량 필드 목록
+  const numericFields = [
+    'currentPrice', 'prevClose', 'openPrice', 'highPrice', 'lowPrice',
+    'volume', 'high52week', 'low52week', 'inav', 'nav'
+  ];
+
+  numericFields.forEach(field => {
+    if (data[field] !== undefined) {
+      data[field] = normalizeNumericValue(data[field]);
+    }
+  });
+
+  // 투자자별 매매동향 정규화
+  if (data.investorTrend) {
+    ['individual', 'foreign', 'institution'].forEach(field => {
+      if (data.investorTrend[field] !== undefined) {
+        data.investorTrend[field] = normalizeNumericValue(data.investorTrend[field]);
+      }
+    });
+  }
+
+  // 차트분석 내 이동평균선 정규화
+  if (data.chartAnalysis) {
+    ['ma5', 'ma20', 'ma60', 'support', 'resistance'].forEach(field => {
+      if (data.chartAnalysis[field] !== undefined) {
+        data.chartAnalysis[field] = normalizeNumericValue(data.chartAnalysis[field]);
+      }
+    });
+  }
+
+  return data;
+}
+
+// ============================================
 // Phase 1: OCR 프롬프트 (이미지에서 데이터 추출만)
 // ============================================
 
@@ -367,42 +432,54 @@ function buildOCRPrompt(stock) {
    - 하락 추세 + 역배열 → "매도"
    - 횡보 또는 불확실 → "관망"
 
+**[출력 형식 규칙 - 매우 중요]**
+
+1. **숫자 값은 콤마 없이 순수 숫자로 반환**:
+   - 올바른 예: 24840, 39705, 3533527
+   - 잘못된 예: "24,840", "39,705", "3,533,527"
+
+2. **퍼센트 값은 % 기호 포함 문자열로 반환**:
+   - 예: "+1.33%", "-0.37%", "0.0062%"
+
+3. **한국식 단위가 필요한 경우만 문자열로 반환**:
+   - 시가총액, 거래대금 등: "5조 2,689억", "87,897백만"
+
 결과는 아래 JSON 구조로 출력하세요. JSON만 출력하고 다른 텍스트는 포함하지 마세요:
 
 {
-  "currentPrice": "현재가",
-  "priceChange": "변동금액",
-  "changePercent": "등락률",
-  "prevClose": "전일",
-  "openPrice": "시가",
-  "highPrice": "고가",
-  "lowPrice": "저가",
-  "volume": "거래량",
-  "tradingValue": "거래대금",
-  "high52week": "52주 최고",
-  "low52week": "52주 최저",
-  "inav": "iNAV",
-  "nav": "NAV",
-  "premiumDiscount": "괴리율",
-  "marketCap": "시가총액",
-  "aum": "운용자산",
-  "expenseRatio": "총보수",
-  "dividendYield": "배당수익률",
-  "return1m": "1개월 수익률",
-  "return3m": "3개월 수익률",
-  "return1y": "1년 수익률",
+  "currentPrice": 24840,
+  "priceChange": 325,
+  "changePercent": "+1.33%",
+  "prevClose": 24515,
+  "openPrice": 24825,
+  "highPrice": 24935,
+  "lowPrice": 24815,
+  "volume": 3533527,
+  "tradingValue": "거래대금 (단위 포함)",
+  "high52week": 25390,
+  "low52week": 15974,
+  "inav": 24840,
+  "nav": 24544,
+  "premiumDiscount": "-0.12%",
+  "marketCap": "시가총액 (단위 포함)",
+  "aum": "운용자산 (단위 포함)",
+  "expenseRatio": "0.0062%",
+  "dividendYield": "연 0.63%",
+  "return1m": "-0.37%",
+  "return3m": "+1.74%",
+  "return1y": "+17.96%",
   "investorTrend": {
-    "individual": "개인 순매수/순매도",
-    "foreign": "외국인 순매수/순매도",
-    "institution": "기관 순매수/순매도"
+    "individual": -14257,
+    "foreign": 20700,
+    "institution": -20217
   },
   "chartAnalysis": {
     "trend": "상승/하락/횡보 중 하나 (필수)",
-    "ma5": "5일 이평선 추정가격",
-    "ma20": "20일 이평선 추정가격",
-    "ma60": "60일 이평선 추정가격",
-    "support": "지지선 가격 (52주 저가 참고)",
-    "resistance": "저항선 가격 (52주 고가 참고)",
+    "ma5": 24750,
+    "ma20": 24550,
+    "ma60": 24050,
+    "support": 15974,
+    "resistance": 25390,
     "pattern": "식별된 차트 패턴명",
     "maAlignment": "정배열/역배열/수렴 중 하나 (필수)",
     "signal": "매수/매도/관망 중 하나 (필수)"
@@ -1045,13 +1122,15 @@ async function analyzeSingleStock(stock) {
     console.log(`[${stock.name}] Phase 1: OCR (Data Extraction)`);
     const ocrPrompt = buildOCRPrompt(stock);
     const ocrResult = await extractDataWithVision(ocrPrompt, imageBase64, stock.name);
-    const extractedData = parseJsonResponse(ocrResult, `${stock.name} OCR`);
+    const rawExtractedData = parseJsonResponse(ocrResult, `${stock.name} OCR`);
 
-    if (!extractedData) {
+    if (!rawExtractedData) {
       console.error(`[${stock.name}] OCR failed to extract data`);
       return null;
     }
 
+    // 데이터 형식 정규화 (문자열 → 숫자 변환)
+    const extractedData = normalizeExtractedData(rawExtractedData);
     console.log(`[${stock.name}] OCR Done - Price: ${extractedData.currentPrice}`);
     const ocrProvider = currentVisionProvider ? visionProviders[currentVisionProvider]?.name : "Unknown";
 
