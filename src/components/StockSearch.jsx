@@ -2,11 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   Search, Check, AlertCircle, Plus, X, Play, ExternalLink,
-  Loader2, CheckCircle2, XCircle, TrendingUp, TrendingDown, Minus,
-  ArrowLeft, RefreshCw, Cpu, ChevronRight
+  Loader2, CheckCircle2, XCircle,
+  ArrowLeft, Cpu, ChevronRight
 } from 'lucide-react';
 import {
   searchStocks,
@@ -20,6 +19,7 @@ import {
   pollWorkflowUntilComplete
 } from '@/lib/stockApi';
 import { formatValue } from '@/lib/formatNumber';
+import { getPredictionBadge, getPredictionIcon } from '@/lib/predictionUtils';
 
 function StockSearch({ isAdmin, githubToken, githubRepo, onAnalysisComplete, existingAnalysisData }) {
   // 뷰 모드: 'search' | 'result'
@@ -157,11 +157,6 @@ function StockSearch({ isAdmin, githubToken, githubRepo, onAnalysisComplete, exi
     } finally {
       setIsAdding(false);
     }
-  };
-
-  // 가격 포맷팅
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('ko-KR').format(price);
   };
 
   // 변동률 색상
@@ -428,29 +423,6 @@ function StockSearch({ isAdmin, githubToken, githubRepo, onAnalysisComplete, exi
   const handleBackToSearch = () => {
     setViewMode('search');
     setAnalysisResult(null);
-  };
-
-  // 예측 배지
-  const getPredictionBadge = (prediction) => {
-    switch (prediction) {
-      case 'Bullish':
-        return <Badge variant="success" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1">상승 전망</Badge>;
-      case 'Bearish':
-        return <Badge variant="destructive" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1">하락 전망</Badge>;
-      default:
-        return <Badge variant="secondary" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1">중립</Badge>;
-    }
-  };
-
-  const getPredictionIcon = (prediction) => {
-    switch (prediction) {
-      case 'Bullish':
-        return <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />;
-      case 'Bearish':
-        return <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />;
-      default:
-        return <Minus className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500" />;
-    }
   };
 
   // 분석 결과 뷰
@@ -748,12 +720,12 @@ function StockSearch({ isAdmin, githubToken, githubRepo, onAnalysisComplete, exi
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground">현재가</p>
-                <p className="font-medium text-sm sm:text-base">{formatPrice(stockDetail.currentPrice)}원</p>
+                <p className="font-medium text-sm sm:text-base">{formatValue(stockDetail.currentPrice)}원</p>
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground">전일대비</p>
                 <p className={`font-medium text-sm sm:text-base ${getChangeColor(stockDetail.changePrice)}`}>
-                  {stockDetail.changePrice > 0 ? '+' : ''}{formatPrice(stockDetail.changePrice)}
+                  {stockDetail.changePrice > 0 ? '+' : ''}{formatValue(stockDetail.changePrice)}
                   <span className="text-xs sm:text-sm">
                     {' '}({stockDetail.changeRate > 0 ? '+' : ''}{stockDetail.changeRate}%)
                   </span>

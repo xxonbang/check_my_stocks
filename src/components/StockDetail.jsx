@@ -2,8 +2,9 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Minus, Cpu, ChevronRight } from 'lucide-react';
+import { Cpu, ChevronRight } from 'lucide-react';
 import { formatValue } from '@/lib/formatNumber';
+import { getPredictionBadge, getPredictionIcon } from '@/lib/predictionUtils';
 
 function StockDetail({ stock }) {
   if (!stock) {
@@ -15,28 +16,6 @@ function StockDetail({ stock }) {
   }
 
   const { code, name, extracted_data, prediction, ai_report, pipeline } = stock;
-
-  const getPredictionBadge = () => {
-    switch (prediction) {
-      case 'Bullish':
-        return <Badge variant="success" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1">상승 전망</Badge>;
-      case 'Bearish':
-        return <Badge variant="destructive" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1">하락 전망</Badge>;
-      default:
-        return <Badge variant="secondary" className="text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1">중립</Badge>;
-    }
-  };
-
-  const getPredictionIcon = () => {
-    switch (prediction) {
-      case 'Bullish':
-        return <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />;
-      case 'Bearish':
-        return <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />;
-      default:
-        return <Minus className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500" />;
-    }
-  };
 
   const isPositiveChange = (value) => {
     if (!value) return null;
@@ -94,8 +73,8 @@ function StockDetail({ stock }) {
                 <p className="text-xs sm:text-sm text-muted-foreground">{code}</p>
               </div>
               <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                {getPredictionIcon()}
-                {getPredictionBadge()}
+                {getPredictionIcon(prediction)}
+                {getPredictionBadge(prediction)}
               </div>
             </div>
           </CardHeader>

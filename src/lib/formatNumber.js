@@ -1,10 +1,10 @@
 // 숫자에 3자리마다 콤마 추가
-export const addCommas = (numStr) => {
+const addCommas = (numStr) => {
   return numStr.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
 
 // 큰 숫자를 한국식 단위로 축약 (조, 억, 천만, 백만)
-export const abbreviateKorean = (num) => {
+const abbreviateKorean = (num) => {
   const absNum = Math.abs(num);
   const sign = num < 0 ? '-' : '';
 
@@ -39,7 +39,7 @@ export const abbreviateKorean = (num) => {
 };
 
 // 달러 단위 축약
-export const abbreviateDollar = (num) => {
+const abbreviateDollar = (num) => {
   const absNum = Math.abs(num);
   const sign = num < 0 ? '-' : '';
 
