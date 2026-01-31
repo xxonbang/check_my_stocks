@@ -329,166 +329,231 @@ function normalizeExtractedData(data) {
 }
 
 // ============================================
-// Phase 1: OCR 프롬프트 (이미지에서 데이터 추출만)
+// 배치 프롬프트 (모든 종목을 단일 API 호출로 처리)
 // ============================================
 
-function buildOCRPrompt(stock) {
-  return `[Role] 당신은 금융 데이터 추출 및 차트 분석 전문가입니다.
+function buildBatchPrompt(stocks) {
+  const stockList = stocks.map((s, i) => `  ${i + 1}. "${s.name}" (${s.code}) - 이미지 #${i + 1}`).join('\n');
+
+  return `[Role] 당신은 금융 데이터 추출, 분석, 예측을 수행하는 전문 ETF/주식 분석가입니다.
+
+[Task]
+아래 ${stocks.length}개의 이미지는 각각 다른 종목의 네이버 증권 상세 페이지입니다.
+**모든 종목에 대해** 데이터 추출, 분석 리포트 작성, 향후 전망 예측을 수행하세요.
+
+[종목 목록과 이미지 매핑]
+${stockList}
+
+---
+
+## 각 종목별 수행 작업
+
+### 1. 데이터 추출 (extracted_data)
+- 가격: currentPrice, priceChange, changePercent, prevClose, openPrice, highPrice, lowPrice
+- 거래: volume, tradingValue
+- 52주: high52week, low52week
+- ETF 지표: inav, nav, premiumDiscount, marketCap, aum, expenseRatio, dividendYield
+- 수익률: return1m, return3m, return1y
+- 투자자별 매매동향: investorTrend (individual, foreign, institution)
+- 차트분석: chartAnalysis (trend, maAlignment, signal, support, resistance, pattern)
+
+### 2. 분석 리포트 (ai_report)
+마크다운 형식으로 기술적 분석, 펀더멘털 분석, 수익률 분석, 수급 분석, 긍정적/부정적 요인 포함
+
+### 3. 전망 예측 (outlook)
+단기(1주일), 중기(1개월) 전망과 종합 심리(Bullish/Bearish/Neutral)
+
+---
+
+## 출력 형식 (JSON)
+
+**반드시 아래 JSON 구조로만 출력하세요. 다른 텍스트 없이 JSON만 출력:**
+
+{
+  "results": [
+    {
+      "code": "종목코드1",
+      "name": "종목명1",
+      "extracted_data": {
+        "currentPrice": 24840,
+        "priceChange": 325,
+        "changePercent": "+1.33%",
+        "prevClose": 24515,
+        "openPrice": 24825,
+        "highPrice": 24935,
+        "lowPrice": 24815,
+        "volume": 3533527,
+        "tradingValue": "거래대금",
+        "high52week": 25390,
+        "low52week": 15974,
+        "inav": 24840,
+        "nav": 24544,
+        "premiumDiscount": "-0.12%",
+        "marketCap": "시가총액",
+        "aum": "운용자산",
+        "expenseRatio": "0.0062%",
+        "dividendYield": "연 0.63%",
+        "return1m": "-0.37%",
+        "return3m": "+1.74%",
+        "return1y": "+17.96%",
+        "investorTrend": { "individual": -14257, "foreign": 20700, "institution": -20217 },
+        "chartAnalysis": { "trend": "상승", "maAlignment": "정배열", "signal": "매수", "support": 15974, "resistance": 25390, "pattern": "패턴명" }
+      },
+      "ai_report": "## 기술적 분석\\n...",
+      "prediction": "Bullish",
+      "outlook": {
+        "shortTermOutlook": { "period": "1주일", "prediction": "상승", "priceRange": { "low": 24500, "high": 25500 }, "confidence": "중간", "reasoning": "근거" },
+        "longTermOutlook": { "period": "1개월", "prediction": "상승", "targetPrice": 26000, "confidence": "중간", "reasoning": "근거" },
+        "overallSentiment": "Bullish",
+        "keyRisks": ["리스크1"],
+        "keyCatalysts": ["모멘텀1"]
+      }
+    },
+    {
+      "code": "종목코드2",
+      "name": "종목명2",
+      ... (동일 구조)
+    }
+  ]
+}
+
+**중요: results 배열에 ${stocks.length}개 종목 모두 포함해야 합니다. 이미지 순서대로 종목을 매핑하세요.**`;
+}
+
+// ============================================
+// 통합 프롬프트 (OCR + Report + Prediction 단일 호출) - 단일 종목용
+// ============================================
+
+function buildUnifiedPrompt(stock) {
+  return `[Role] 당신은 금융 데이터 추출, 분석, 예측을 수행하는 전문 ETF/주식 분석가입니다.
 
 [Task]
 이 이미지는 "${stock.name}" (종목코드: ${stock.code})의 네이버 증권 상세 페이지입니다.
-두 가지 작업을 수행하세요:
-1. 텍스트/숫자 데이터를 정확히 추출
-2. 차트 이미지를 시각적으로 분석하여 기술적 지표 판단
+다음 3가지 작업을 **한 번에** 수행하세요:
+1. 이미지에서 데이터 추출 (OCR)
+2. 추출된 데이터 기반 분석 리포트 작성
+3. 향후 전망 예측
 
-**[Part 1: 텍스트/숫자 데이터 추출]**
+---
+
+## Part 1: 데이터 추출 (extracted_data)
 
 **테이블 데이터 추출 시 주의사항:**
+1. 레이블-값 매핑: "전일" → prevClose, "시가" → openPrice, "고가" → highPrice, "저가" → lowPrice
+2. 숫자를 정확히 읽고, 저가 ≤ 현재가 ≤ 고가 검증
 
-1. **레이블-값 매핑 필수**: 테이블에서 각 레이블(예: "전일", "시가", "고가") 바로 옆 또는 아래에 있는 숫자가 해당 레이블의 값입니다.
-   - "전일" 옆의 숫자 → prevClose
-   - "시가" 옆의 숫자 → openPrice
-   - "고가" 옆의 숫자 → highPrice
-   - "저가" 옆의 숫자 → lowPrice
+**추출할 데이터:**
+- 가격: currentPrice, priceChange, changePercent, prevClose, openPrice, highPrice, lowPrice
+- 거래: volume, tradingValue
+- 52주: high52week, low52week
+- ETF 지표: inav, nav, premiumDiscount, marketCap, aum, expenseRatio, dividendYield
+- 수익률: return1m, return3m, return1y
+- 투자자별 매매동향: investorTrend (individual, foreign, institution)
 
-2. **테이블 레이아웃 구조**: 네이버 증권의 가격 정보 테이블은 다음과 같이 구성됩니다:
-   | 전일 [값1] | 시가 [값2] | 고가 [값3] |
-   | 저가 [값4] | 거래량 [값5] | 대금 [값6] |
-   각 레이블 바로 옆의 숫자만 해당 필드에 할당하세요.
+**차트 시각적 분석 (chartAnalysis):**
+- trend: 상승/하락/횡보
+- maAlignment: 정배열/역배열/수렴
+- signal: 매수/매도/관망
+- support, resistance, pattern
 
-3. **숫자 추출 주의사항:**
-   - 숫자를 한 글자씩 정확히 읽으세요
-   - 쉼표(,)의 위치를 확인하여 자릿수를 정확히 파악하세요
-   - 첫 번째 숫자를 절대 누락하지 마세요
+---
 
-4. **논리적 검증**: 추출 후 다음을 반드시 확인하세요:
-   - 저가 ≤ 시가 ≤ 고가 (일반적인 경우)
-   - 저가 ≤ 현재가 ≤ 고가
-   - 전일과 시가는 다른 값일 수 있습니다
+## Part 2: 분석 리포트 (ai_report)
 
-**[추출할 데이터 목록]**
+추출된 데이터를 바탕으로 마크다운 형식의 종합 분석 리포트를 작성하세요.
 
-1. 가격 정보:
-   - 현재가 (currentPrice) - 페이지 상단의 가장 큰 숫자
-   - 전일 대비 변동금액 (priceChange)
-   - 등락률 (changePercent)
-   - 전일 종가 (prevClose) - "전일" 레이블 옆의 값
-   - 시가 (openPrice) - "시가" 레이블 옆의 값
-   - 고가 (highPrice) - "고가" 레이블 옆의 값
-   - 저가 (lowPrice) - "저가" 레이블 옆의 값
+**포함할 내용:**
+- 기술적 분석 (차트 패턴, 이동평균선, 지지/저항선)
+- 펀더멘털 분석 (NAV, 괴리율, 운용자산)
+- 수익률 분석 (1개월/3개월/1년 트렌드)
+- 수급 분석 (투자자별 매매동향)
+- 긍정적/부정적 요인
+- 투자 시 유의사항
 
-2. 거래 정보:
-   - 거래량 (volume)
-   - 거래대금 (tradingValue)
+---
 
-3. 52주 정보:
-   - 52주 최고 (high52week)
-   - 52주 최저 (low52week)
+## Part 3: 전망 예측 (outlook)
 
-4. ETF 핵심 지표:
-   - iNAV (inav)
-   - NAV (nav)
-   - 괴리율 (premiumDiscount)
-   - 시가총액 (marketCap)
-   - 운용자산(AUM) (aum)
-   - 총보수 (expenseRatio)
-   - 배당수익률 (dividendYield)
+추출된 데이터와 분석을 바탕으로 향후 전망을 예측하세요.
 
-5. 수익률 정보:
-   - 1개월 수익률 (return1m)
-   - 3개월 수익률 (return3m)
-   - 1년 수익률 (return1y)
+**예측할 내용:**
+- 단기 전망 (1주일): 상승/하락/횡보, 예상 가격 범위
+- 중기 전망 (1개월): 상승/하락/횡보, 목표가
+- 종합 심리: Bullish/Bearish/Neutral
+- 주요 리스크 및 모멘텀
 
-6. 투자자별 매매동향 (investorTrend):
-   - 개인, 외국인, 기관 순매수/순매도 현황
+---
 
-**[Part 2: 차트 시각적 분석 - 매우 중요]**
+## 출력 형식 (JSON)
 
-이미지에 표시된 **가격 차트를 시각적으로 분석**하여 다음 항목을 판단하세요.
-차트가 보이면 반드시 분석 결과를 제공해야 합니다.
-
-**차트 분석 방법:**
-
-1. **추세 (trend) 판단** - 반드시 하나를 선택:
-   - 차트 선이 왼쪽에서 오른쪽으로 **올라가면** → "상승"
-   - 차트 선이 왼쪽에서 오른쪽으로 **내려가면** → "하락"
-   - 차트 선이 **수평으로 움직이면** → "횡보"
-
-2. **이동평균선 분석** (차트에 여러 선이 보이는 경우):
-   - 짧은 기간선(5일)이 위, 긴 기간선(60일)이 아래 → "정배열" (상승 신호)
-   - 짧은 기간선(5일)이 아래, 긴 기간선(60일)이 위 → "역배열" (하락 신호)
-   - 선들이 서로 가까이 모여있으면 → "수렴"
-
-3. **지지선/저항선 추정**:
-   - 지지선: 차트에서 가격이 여러 번 반등한 하단 가격대
-   - 저항선: 차트에서 가격이 여러 번 막힌 상단 가격대
-   - 52주 저가 근처 = 강한 지지선, 52주 고가 근처 = 강한 저항선
-
-4. **차트 패턴 식별**:
-   - "상승삼각형", "하락삼각형", "이중바닥", "이중천장", "박스권", "상승채널", "하락채널" 등
-
-5. **매매 시그널 판단**:
-   - 상승 추세 + 정배열 → "매수"
-   - 하락 추세 + 역배열 → "매도"
-   - 횡보 또는 불확실 → "관망"
-
-**[출력 형식 규칙 - 매우 중요]**
-
-1. **숫자 값은 콤마 없이 순수 숫자로 반환**:
-   - 올바른 예: 24840, 39705, 3533527
-   - 잘못된 예: "24,840", "39,705", "3,533,527"
-
-2. **퍼센트 값은 % 기호 포함 문자열로 반환**:
-   - 예: "+1.33%", "-0.37%", "0.0062%"
-
-3. **한국식 단위가 필요한 경우만 문자열로 반환**:
-   - 시가총액, 거래대금 등: "5조 2,689억", "87,897백만"
-
-결과는 아래 JSON 구조로 출력하세요. JSON만 출력하고 다른 텍스트는 포함하지 마세요:
+**반드시 아래 JSON 구조로만 출력하세요. 다른 텍스트 없이 JSON만 출력:**
 
 {
-  "currentPrice": 24840,
-  "priceChange": 325,
-  "changePercent": "+1.33%",
-  "prevClose": 24515,
-  "openPrice": 24825,
-  "highPrice": 24935,
-  "lowPrice": 24815,
-  "volume": 3533527,
-  "tradingValue": "거래대금 (단위 포함)",
-  "high52week": 25390,
-  "low52week": 15974,
-  "inav": 24840,
-  "nav": 24544,
-  "premiumDiscount": "-0.12%",
-  "marketCap": "시가총액 (단위 포함)",
-  "aum": "운용자산 (단위 포함)",
-  "expenseRatio": "0.0062%",
-  "dividendYield": "연 0.63%",
-  "return1m": "-0.37%",
-  "return3m": "+1.74%",
-  "return1y": "+17.96%",
-  "investorTrend": {
-    "individual": -14257,
-    "foreign": 20700,
-    "institution": -20217
+  "extracted_data": {
+    "currentPrice": 24840,
+    "priceChange": 325,
+    "changePercent": "+1.33%",
+    "prevClose": 24515,
+    "openPrice": 24825,
+    "highPrice": 24935,
+    "lowPrice": 24815,
+    "volume": 3533527,
+    "tradingValue": "거래대금 (단위 포함)",
+    "high52week": 25390,
+    "low52week": 15974,
+    "inav": 24840,
+    "nav": 24544,
+    "premiumDiscount": "-0.12%",
+    "marketCap": "시가총액 (단위 포함)",
+    "aum": "운용자산 (단위 포함)",
+    "expenseRatio": "0.0062%",
+    "dividendYield": "연 0.63%",
+    "return1m": "-0.37%",
+    "return3m": "+1.74%",
+    "return1y": "+17.96%",
+    "investorTrend": {
+      "individual": -14257,
+      "foreign": 20700,
+      "institution": -20217
+    },
+    "chartAnalysis": {
+      "trend": "상승/하락/횡보",
+      "ma5": 24750,
+      "ma20": 24550,
+      "ma60": 24050,
+      "support": 15974,
+      "resistance": 25390,
+      "pattern": "차트 패턴명",
+      "maAlignment": "정배열/역배열/수렴",
+      "signal": "매수/매도/관망"
+    }
   },
-  "chartAnalysis": {
-    "trend": "상승/하락/횡보 중 하나 (필수)",
-    "ma5": 24750,
-    "ma20": 24550,
-    "ma60": 24050,
-    "support": 15974,
-    "resistance": 25390,
-    "pattern": "식별된 차트 패턴명",
-    "maAlignment": "정배열/역배열/수렴 중 하나 (필수)",
-    "signal": "매수/매도/관망 중 하나 (필수)"
+  "ai_report": "## 기술적 분석\\n...마크다운 형식 리포트 전체...",
+  "prediction": "Bullish/Bearish/Neutral",
+  "outlook": {
+    "shortTermOutlook": {
+      "period": "1주일",
+      "prediction": "상승/하락/횡보",
+      "priceRange": { "low": 24500, "high": 25500 },
+      "confidence": "높음/중간/낮음",
+      "reasoning": "근거 설명"
+    },
+    "longTermOutlook": {
+      "period": "1개월",
+      "prediction": "상승/하락/횡보",
+      "targetPrice": 26000,
+      "confidence": "높음/중간/낮음",
+      "reasoning": "근거 설명"
+    },
+    "overallSentiment": "Bullish/Bearish/Neutral",
+    "keyRisks": ["리스크1", "리스크2"],
+    "keyCatalysts": ["모멘텀1", "모멘텀2"]
   }
 }`;
 }
 
 // ============================================
-// Phase 2: 리포트 생성 프롬프트 (텍스트 기반)
+// [DEPRECATED] 개별 프롬프트 함수들 - 호환성 유지용
 // ============================================
 
 function buildReportPrompt(stock, extractedData) {
@@ -806,7 +871,7 @@ async function callGroqText(prompt) {
 }
 
 // ============================================
-// Gemini API (Vision - OCR용)
+// Gemini API (Vision - OCR용, 단일 이미지)
 // ============================================
 
 async function callGeminiVision(prompt, imageBase64) {
@@ -835,6 +900,52 @@ async function callGeminiVision(prompt, imageBase64) {
       const result = await model.generateContent([prompt, imagePart]);
       const response = await result.response;
       currentGeminiKeyIndex = i;
+      return response.text();
+    } catch (error) {
+      console.log(`    ✗ Gemini key #${i + 1} failed: ${error.message}`);
+      if (i === GEMINI_API_KEYS.length - 1) {
+        throw new Error("All Gemini API keys exhausted");
+      }
+    }
+  }
+}
+
+// ============================================
+// Gemini API (Vision - 배치, 다중 이미지)
+// ============================================
+
+async function callGeminiVisionBatch(prompt, stockImages) {
+  console.log(`    → Gemini API Batch (${stockImages.length} images, key #${currentGeminiKeyIndex + 1})`);
+
+  for (let i = currentGeminiKeyIndex; i < GEMINI_API_KEYS.length; i++) {
+    try {
+      const genAI = new GoogleGenerativeAI(GEMINI_API_KEYS[i]);
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        generationConfig: {
+          temperature: 0.1,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 65536, // 배치 처리를 위해 토큰 증가
+        },
+      });
+
+      // 프롬프트와 모든 이미지를 하나의 콘텐츠 배열로 구성
+      const contentParts = [prompt];
+
+      for (const { code, imageBase64 } of stockImages) {
+        contentParts.push({
+          inlineData: {
+            mimeType: "image/png",
+            data: imageBase64,
+          },
+        });
+      }
+
+      const result = await model.generateContent(contentParts);
+      const response = await result.response;
+      currentGeminiKeyIndex = i;
+      currentVisionProvider = "gemini"; // 배치 호출 시 프로바이더 설정
       return response.text();
     } catch (error) {
       console.log(`    ✗ Gemini key #${i + 1} failed: ${error.message}`);
@@ -1103,7 +1214,7 @@ async function generatePredictionWithReasoning(prompt, stockName) {
 }
 
 // ============================================
-// 3단계 종목 분석 (OCR → Report → Prediction)
+// 단일 API 호출 종목 분석 (통합 프롬프트)
 // ============================================
 
 async function analyzeSingleStock(stock) {
@@ -1115,69 +1226,59 @@ async function analyzeSingleStock(stock) {
   }
 
   const imageBase64 = loadImageAsBase64(imagePath);
-  console.log(`\n[${stock.name}] Starting 3-phase analysis...`);
+  console.log(`\n[${stock.name}] Starting unified analysis (single API call)...`);
 
   try {
-    // ========== Phase 1: OCR (Vision) ==========
-    console.log(`[${stock.name}] Phase 1: OCR (Data Extraction)`);
-    const ocrPrompt = buildOCRPrompt(stock);
-    const ocrResult = await extractDataWithVision(ocrPrompt, imageBase64, stock.name);
-    const rawExtractedData = parseJsonResponse(ocrResult, `${stock.name} OCR`);
+    // ========== 통합 분석 (단일 API 호출) ==========
+    console.log(`[${stock.name}] Unified Analysis: OCR + Report + Prediction`);
+    const unifiedPrompt = buildUnifiedPrompt(stock);
+    const unifiedResult = await extractDataWithVision(unifiedPrompt, imageBase64, stock.name);
+    const parsedResult = parseJsonResponse(unifiedResult, `${stock.name} Unified`);
+
+    if (!parsedResult) {
+      console.error(`[${stock.name}] Unified analysis failed to parse response`);
+      return null;
+    }
+
+    // 통합 응답에서 각 부분 추출
+    const rawExtractedData = parsedResult.extracted_data;
+    const aiReport = parsedResult.ai_report;
+    const prediction = parsedResult.prediction;
+    const outlook = parsedResult.outlook;
 
     if (!rawExtractedData) {
-      console.error(`[${stock.name}] OCR failed to extract data`);
+      console.error(`[${stock.name}] No extracted_data in response`);
       return null;
     }
 
     // 데이터 형식 정규화 (문자열 → 숫자 변환)
     const extractedData = normalizeExtractedData(rawExtractedData);
-    console.log(`[${stock.name}] OCR Done - Price: ${extractedData.currentPrice}`);
-    const ocrProvider = currentVisionProvider ? visionProviders[currentVisionProvider]?.name : "Unknown";
+    console.log(`[${stock.name}] Data extracted - Price: ${extractedData.currentPrice}`);
 
     // 데이터 검증
     const warnings = validateExtractedData(extractedData, stock.name);
 
-    // 짧은 대기 (rate limit 방지)
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // 사용된 프로바이더 정보
+    const providerName = currentVisionProvider ? visionProviders[currentVisionProvider]?.name : "Unknown";
 
-    // ========== Phase 2: Report Generation (Text - Gemini 고품질) ==========
-    console.log(`[${stock.name}] Phase 2: Report Generation (Gemini)`);
-    const reportPrompt = buildReportPrompt(stock, extractedData);
-    const report = await generateReportWithText(reportPrompt, stock.name);
-
-    console.log(`[${stock.name}] Report Done`);
-    const reportProvider = currentTextProvider ? textProviders[currentTextProvider]?.name : "Unknown";
-
-    // 짧은 대기
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // ========== Phase 3: Prediction (Gemini 고품질) ==========
-    console.log(`[${stock.name}] Phase 3: Prediction (Gemini)`);
-    const predictionPrompt = buildPredictionPrompt(stock, extractedData, report);
-    const predictionResult = await generatePredictionWithReasoning(predictionPrompt, stock.name);
-    const prediction = predictionResult ? parseJsonResponse(predictionResult, `${stock.name} Prediction`) : null;
-
-    console.log(`[${stock.name}] Prediction Done`);
-    const predictionProvider = currentReasoningProvider ? reasoningProviders[currentReasoningProvider]?.name : "Unknown";
-
-    // 결과 조합 (종목별 파이프라인 정보 포함)
+    // 결과 조합
     const result = {
       code: stock.code,
       name: stock.name,
       extracted_data: extractedData,
-      ai_report: report,
-      prediction: prediction?.overallSentiment || "Neutral",
-      outlook: prediction || {
-        shortTermOutlook: { prediction: "N/A", reasoning: "예측 모델 응답 없음" },
-        longTermOutlook: { prediction: "N/A", reasoning: "예측 모델 응답 없음" },
+      ai_report: aiReport || "분석 리포트를 생성하지 못했습니다.",
+      prediction: prediction || outlook?.overallSentiment || "Neutral",
+      outlook: outlook || {
+        shortTermOutlook: { prediction: "N/A", reasoning: "예측 데이터 없음" },
+        longTermOutlook: { prediction: "N/A", reasoning: "예측 데이터 없음" },
         overallSentiment: "Neutral",
         keyRisks: [],
         keyCatalysts: []
       },
       pipeline: {
-        ocr: ocrProvider,
-        report: reportProvider,
-        prediction: predictionProvider
+        ocr: providerName,
+        report: providerName,
+        prediction: providerName
       }
     };
 
@@ -1185,7 +1286,7 @@ async function analyzeSingleStock(stock) {
       result.dataValidationWarnings = warnings;
     }
 
-    console.log(`[${stock.name}] ✓ All phases complete\n`);
+    console.log(`[${stock.name}] ✓ Unified analysis complete (1 API call)\n`);
     return result;
 
   } catch (error) {
@@ -1195,25 +1296,122 @@ async function analyzeSingleStock(stock) {
 }
 
 // ============================================
-// 전체 종목 분석
+// 전체 종목 배치 분석 (단일 API 호출)
 // ============================================
 
 async function analyzeStocks(stocks) {
-  console.log(`\nAnalyzing ${stocks.length} stocks with 3-phase pipeline...`);
-  console.log("Pipeline: OCR (Gemini) → Report (Gemini) → Prediction (Gemini)\n");
+  console.log(`\nAnalyzing ${stocks.length} stocks with BATCH mode...`);
+  console.log("Mode: ALL stocks in SINGLE API call\n");
 
-  const results = [];
+  // 1. 모든 종목의 이미지 로드
+  const stockImages = [];
+  const validStocks = [];
 
   for (const stock of stocks) {
-    const result = await analyzeSingleStock(stock);
-    if (result) {
-      results.push(result);
+    const imagePath = path.join(SCREENSHOTS_DIR, `${stock.code}.png`);
+
+    if (!fs.existsSync(imagePath)) {
+      console.log(`[${stock.name}] Screenshot not found, skipping...`);
+      continue;
     }
-    // API 호출 간 대기 (rate limit 방지)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const imageBase64 = loadImageAsBase64(imagePath);
+    stockImages.push({ code: stock.code, imageBase64 });
+    validStocks.push(stock);
+    console.log(`[${stock.name}] Image loaded (${stock.code})`);
   }
 
-  return { stocks: results };
+  if (stockImages.length === 0) {
+    console.error("No valid stock images found!");
+    return { stocks: [] };
+  }
+
+  console.log(`\nLoaded ${stockImages.length} images, starting batch analysis...`);
+
+  try {
+    // 2. 배치 프롬프트 생성
+    const batchPrompt = buildBatchPrompt(validStocks);
+
+    // 3. 단일 API 호출 (모든 이미지 포함)
+    console.log(`\n[BATCH] Calling Gemini API with ${stockImages.length} images...`);
+    const batchResult = await callGeminiVisionBatch(batchPrompt, stockImages);
+
+    // 4. 응답 파싱
+    const parsedResult = parseJsonResponse(batchResult, "Batch Analysis");
+
+    if (!parsedResult || !parsedResult.results) {
+      console.error("Batch analysis failed to parse response");
+      console.log("Raw response:", batchResult?.substring(0, 500));
+      return { stocks: [] };
+    }
+
+    console.log(`\n[BATCH] Received ${parsedResult.results.length} stock results`);
+
+    // 5. 각 종목 결과 처리
+    const results = [];
+    const providerName = currentVisionProvider ? visionProviders[currentVisionProvider]?.name : "Gemini API";
+
+    for (const stockResult of parsedResult.results) {
+      const stock = validStocks.find(s => s.code === stockResult.code);
+      if (!stock) {
+        console.warn(`Unknown stock code in response: ${stockResult.code}`);
+        continue;
+      }
+
+      // 데이터 정규화
+      const extractedData = normalizeExtractedData(stockResult.extracted_data);
+
+      // 데이터 검증
+      const warnings = validateExtractedData(extractedData, stock.name);
+
+      const result = {
+        code: stockResult.code,
+        name: stockResult.name || stock.name,
+        extracted_data: extractedData,
+        ai_report: stockResult.ai_report || "분석 리포트를 생성하지 못했습니다.",
+        prediction: stockResult.prediction || stockResult.outlook?.overallSentiment || "Neutral",
+        outlook: stockResult.outlook || {
+          shortTermOutlook: { prediction: "N/A", reasoning: "예측 데이터 없음" },
+          longTermOutlook: { prediction: "N/A", reasoning: "예측 데이터 없음" },
+          overallSentiment: "Neutral",
+          keyRisks: [],
+          keyCatalysts: []
+        },
+        pipeline: {
+          ocr: providerName,
+          report: providerName,
+          prediction: providerName
+        }
+      };
+
+      if (warnings.length > 0) {
+        result.dataValidationWarnings = warnings;
+      }
+
+      results.push(result);
+      console.log(`[${stock.name}] ✓ Processed - Price: ${extractedData?.currentPrice || 'N/A'}`);
+    }
+
+    console.log(`\n[BATCH] ✓ Complete! ${results.length}/${stockImages.length} stocks processed with 1 API call\n`);
+    return { stocks: results };
+
+  } catch (error) {
+    console.error(`[BATCH] Analysis failed: ${error.message}`);
+
+    // 배치 실패 시 개별 처리로 폴백
+    console.log("\n[FALLBACK] Trying individual analysis...");
+    const results = [];
+
+    for (const stock of validStocks) {
+      const result = await analyzeSingleStock(stock);
+      if (result) {
+        results.push(result);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    return { stocks: results };
+  }
 }
 
 // ============================================
@@ -1221,12 +1419,11 @@ async function analyzeStocks(stocks) {
 // ============================================
 
 async function main() {
-  console.log("\n=== Stock Analyzer Started (3-Phase Pipeline) ===");
+  console.log("\n=== Stock Analyzer Started (BATCH Mode) ===");
   console.log(`Timestamp: ${new Date().toISOString()}`);
-  console.log(`Mode: ${SINGLE_STOCK_MODE ? 'Single Stock' : 'All Stocks'}`);
-  console.log("Phase 1 (OCR): Gemini → OpenRouter → Groq → Cloudflare");
-  console.log("Phase 2 (Report): Gemini → Groq → OpenRouter");
-  console.log("Phase 3 (Prediction): Gemini → DeepSeek-R1 → Groq\n");
+  console.log(`Mode: ${SINGLE_STOCK_MODE ? 'Single Stock (1 API call)' : 'Batch (ALL stocks in 1 API call)'}`);
+  console.log("API Calls: 1 TOTAL (regardless of stock count)");
+  console.log("Provider: Gemini API (multi-image batch)\n");
 
   const stocks = loadStocks();
   console.log(`Loaded ${stocks.length} stocks`);
