@@ -36,10 +36,67 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # 한국 공휴일/주말 체크 (스케줄 실행 시에만)
+  check-holiday:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    outputs:
+      is_holiday: ${{ steps.check.outputs.is_holiday }}
+    steps:
+      - name: Check Korean holiday or weekend
+        id: check
+        run: |
+          # 한국 시간으로 변환
+          export TZ='Asia/Seoul'
+          TODAY=$(date +%Y-%m-%d)
+          YEAR=$(date +%Y)
+          DAY_OF_WEEK=$(date +%u)  # 1=월, 7=일
+
+          echo "Today (KST): $TODAY"
+          echo "Day of week: $DAY_OF_WEEK"
+
+          # 주말 체크 (토: 6, 일: 7)
+          if [ "$DAY_OF_WEEK" -ge 6 ]; then
+            echo "is_holiday=true" >> $GITHUB_OUTPUT
+            echo "⏭️ Skipping: Weekend (주말)"
+            exit 0
+          fi
+
+          # 공휴일 API로 확인 (date.nager.at - 무료, 인증 불필요)
+          echo "Checking holidays from API..."
+          HOLIDAYS=$(curl -sf "https://date.nager.at/api/v3/PublicHolidays/${YEAR}/KR" || echo "")
+
+          if [ -n "$HOLIDAYS" ]; then
+            # API 응답에서 오늘 날짜가 있는지 확인
+            if echo "$HOLIDAYS" | grep -q "\"date\":\"$TODAY\""; then
+              HOLIDAY_NAME=$(echo "$HOLIDAYS" | grep -o "\"date\":\"$TODAY\"[^}]*\"localName\":\"[^\"]*\"" | grep -o "\"localName\":\"[^\"]*\"" | cut -d'"' -f4)
+              echo "is_holiday=true" >> $GITHUB_OUTPUT
+              echo "⏭️ Skipping: Korean holiday (${HOLIDAY_NAME:-공휴일})"
+              exit 0
+            fi
+          else
+            echo "⚠️ Holiday API unavailable, using fallback list..."
+            # API 실패 시 폴백: 고정 공휴일만 체크
+            FIXED_HOLIDAYS="01-01 03-01 05-05 06-06 08-15 10-03 10-09 12-25"
+            TODAY_MD=$(date +%m-%d)
+            if echo "$FIXED_HOLIDAYS" | grep -q "$TODAY_MD"; then
+              echo "is_holiday=true" >> $GITHUB_OUTPUT
+              echo "⏭️ Skipping: Korean fixed holiday (고정 공휴일)"
+              exit 0
+            fi
+          fi
+
+          echo "is_holiday=false" >> $GITHUB_OUTPUT
+          echo "✅ Not a holiday or weekend, proceeding..."
+
   analyze:
     runs-on: ubuntu-latest
+    needs: [check-holiday]
     # push 이벤트에서는 분석 건너뛰기 (배포만 진행)
-    if: github.event_name != 'push'
+    # 스케줄 이벤트에서는 공휴일/주말이면 건너뛰기
+    if: |
+      github.event_name != 'push' &&
+      (github.event_name != 'schedule' || needs.check-holiday.outputs.is_holiday != 'true')
 
     steps:
       - name: Checkout repository
@@ -115,8 +172,12 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    needs: [analyze]
-    if: always() && (needs.analyze.result == 'success' || needs.analyze.result == 'skipped')
+    needs: [check-holiday, analyze]
+    # 공휴일/주말이 아니고, analyze가 성공했거나 건너뛴 경우에만 실행
+    if: |
+      always() &&
+      (github.event_name != 'schedule' || needs.check-holiday.outputs.is_holiday != 'true') &&
+      (needs.analyze.result == 'success' || needs.analyze.result == 'skipped')
 
     steps:
       - name: Checkout repository
