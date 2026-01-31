@@ -36,16 +36,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # 한국 공휴일/주말 체크 (스케줄 실행 시에만)
+  # 한국 공휴일/주말 체크
   check-holiday:
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule'
     outputs:
       is_holiday: ${{ steps.check.outputs.is_holiday }}
     steps:
       - name: Check Korean holiday or weekend
         id: check
         run: |
+          # 수동 실행(workflow_dispatch, repository_dispatch)은 항상 실행
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "is_holiday=false" >> $GITHUB_OUTPUT
+            echo "✅ Manual trigger - always run (수동 실행)"
+            exit 0
+          fi
+
           # 한국 시간으로 변환
           export TZ='Asia/Seoul'
           TODAY=$(date +%Y-%m-%d)
@@ -92,11 +98,8 @@ jobs:
   analyze:
     runs-on: ubuntu-latest
     needs: [check-holiday]
-    # push 이벤트에서는 분석 건너뛰기 (배포만 진행)
-    # 스케줄 이벤트에서는 공휴일/주말이면 건너뛰기
-    if: |
-      github.event_name != 'push' &&
-      (github.event_name != 'schedule' || needs.check-holiday.outputs.is_holiday != 'true')
+    # push 이벤트에서는 분석 건너뛰기, 공휴일/주말이면 건너뛰기
+    if: github.event_name != 'push' && needs.check-holiday.outputs.is_holiday != 'true'
 
     steps:
       - name: Checkout repository
@@ -176,7 +179,7 @@ jobs:
     # 공휴일/주말이 아니고, analyze가 성공했거나 건너뛴 경우에만 실행
     if: |
       always() &&
-      (github.event_name != 'schedule' || needs.check-holiday.outputs.is_holiday != 'true') &&
+      needs.check-holiday.outputs.is_holiday != 'true' &&
       (needs.analyze.result == 'success' || needs.analyze.result == 'skipped')
 
     steps:
