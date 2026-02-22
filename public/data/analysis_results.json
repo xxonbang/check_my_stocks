@@ -1,7 +1,7 @@
 {
-  "lastUpdated": "2026-02-20T14:02:05.205Z",
+  "lastUpdated": "2026-02-22T23:16:11.470Z",
   "pipeline": {
-    "ocr": "Gemini API",
+    "ocr": "Groq (Llama 4 Scout)",
     "report": "None",
     "prediction": "None"
   },
@@ -10,42 +10,45 @@
       "code": "379810",
       "name": "KODEX 미국나스닥100",
       "extracted_data": {
-        "currentPrice": 23940,
-        "priceChange": 40,
-        "changePercent": "+0.17%",
+        "currentPrice": 23900,
+        "priceChange": 0,
+        "changePercent": "0.00%",
         "prevClose": 23900,
-        "openPrice": 23940,
-        "highPrice": 23990,
-        "lowPrice": 23800,
-        "volume": 4990943,
-        "tradingValue": "1,198억",
-        "high52week": 24282,
-        "low52week": 15950,
-        "inav": 23940,
-        "nav": 23900,
-        "premiumDiscount": "+0.17%",
-        "marketCap": "3조 2,830억",
-        "aum": "3조 2,830억",
+        "openPrice": 23900,
+        "highPrice": 23900,
+        "lowPrice": 23900,
+        "volume": 0,
+        "tradingValue": "거래대금 (단위 포함)",
+        "high52week": 25283,
+        "low52week": 15932,
+        "inav": 23808,
+        "nav": 0,
+        "premiumDiscount": "(23,808 / 23,900) * 100 - 100 = -0.38%",
+        "marketCap": "시가총액 (단위 포함)",
+        "aum": "운용자산 (단위 포함)",
         "expenseRatio": "0.0062%",
-        "dividendYield": "연 0.73%",
-        "return1m": "-3.27%",
-        "return3m": "+0.13%",
-        "return1y": "+13.28%",
+        "dividendYield": "연 0.63%",
+        "return1m": "-3.19%",
+        "return3m": "-2.09%",
+        "return1y": "+13.73%",
         "investorTrend": {
-          "individual": -19781,
-          "foreign": 390436,
-          "institution": -390436
+          "individual": 0,
+          "foreign": 0,
+          "institution": 0
         },
         "chartAnalysis": {
-          "trend": "상승",
-          "maAlignment": "정배열 유지, 단기 수렴",
-          "signal": "중립",
-          "support": 23000,
-          "resistance": 24282,
-          "pattern": "박스권 횡보"
+          "trend": "횡보",
+          "ma5": 0,
+          "ma20": 0,
+          "ma60": 0,
+          "support": 15932,
+          "resistance": 25283,
+          "pattern": "",
+          "maAlignment": "",
+          "signal": ""
         }
       },
-      "ai_report": "## 기술적 분석\nKODEX 미국나스닥100은 1년 차트 기준 견고한 상승 추세를 유지하고 있습니다. 최근 1개월간은 고점 부근에서 횡보하며 단기 조정을 거쳤으나, 주요 이동평균선은 여전히 정배열을 유지하며 상승 추세의 기반을 다지고 있습니다. 현재 가격은 52주 최고가(24,282원)에 근접해 있으며, 23,000원 부근에서 지지력을 확보하고 있습니다. 거래량은 평균 수준을 유지하고 있습니다.\n\n## 펀더멘털 분석\n이 ETF는 미국 나스닥100 지수를 추종하며, 주로 기술 및 성장주에 투자합니다. 인공지능(AI) 및 기술 혁신에 대한 기대감은 장기적인 성장 동력으로 작용할 수 있습니다. 운용자산(AUM)이 3조 2,830억 원으로 매우 크고, 총보수율(0.0062%)이 낮은 편이라 장기 투자에 유리합니다. 나스닥100 기업들의 실적 호조는 펀더멘털을 강화하는 요인입니다.\n\n## 수익률 분석\n1년 수익률은 +13.28%로 양호한 성과를 보였으나, 최근 1개월 수익률은 -3.27%로 단기 조정 국면에 있음을 보여줍니다. 3개월 수익률은 +0.13%로 횡보세를 나타내고 있습니다. 이는 최근 기술주 전반의 숨 고르기 양상과 일치합니다.\n\n## 수급 분석\n최근 투자자별 매매동향(02.20 기준)을 보면, 외국인이 390,436주를 순매수하며 강한 매수세를 보인 반면, 개인과 기관은 각각 -19,781주, -390,436주를 순매도했습니다. 이는 외국인 투자자들이 나스닥100의 장기적인 성장 잠재력을 긍정적으로 보고 있음을 시사합니다.\n\n## 긍정적 요인\n*   미국 기술주의 견조한 성장세 및 AI 산업 발전 기대감\n*   낮은 총보수율로 장기 투자 매력도 높음\n*   외국인 투자자의 지속적인 관심 및 매수세\n\n## 부정적 요인\n*   단기 고점 부담 및 차익 실현 매물 출회 가능성\n*   미국 금리 인상 기조 재개 또는 인플레이션 우려 심화 시 기술주에 부정적 영향\n*   글로벌 경기 둔화 우려",
+      "ai_report": "## 기술적 분석\n현재 KODEX 미국나스닥100 ETF의 가격은 23,900원으로 전일과 동일한 가격을 유지하고 있습니다. 거래량은 0으로 보고되지 않았습니다. 52주 최고가는 25,283원, 최저가는 15,932원입니다.\n\n## 펀더멘털 분석\nNAV는 23,808원으로 프리미엄/디스카운트는 -0.38%입니다. 운용자산 규모는 제공되지 않았습니다.\n\n## 수익률 분석\n1개월 수익률은 -3.19%, 3개월 수익률은 -2.09%, 1년 수익률은 +13.73%입니다.\n\n## 수급 분석\n투자자별 매매 동향은 제공되지 않았습니다.\n\n## 종합 분석\n긍정적 요인으로는 미국 나스닥 지수의 전반적인 상승세와 ETF의 안정적인 운용을 꼽을 수 있습니다. 부정적 요인으로는 최근의 횡보세와 거래량 부진이 있습니다.\n\n## 투자 시 유의사항\n투자자는 자신의 투자 목표와 위험 감수성을 고려하여 신중하게 투자 결정을 내려야 합니다.",
       "prediction": "Neutral",
       "outlook": {
         "shortTermOutlook": {
@@ -53,76 +56,80 @@
           "prediction": "횡보",
           "priceRange": {
             "low": 23500,
-            "high": 24200
+            "high": 24500
           },
           "confidence": "중간",
-          "reasoning": "최근 단기 조정 후 횡보세를 보이며 방향성을 탐색 중. 큰 변동성보다는 박스권 움직임 예상."
+          "reasoning": "최근 횡보세 지속"
         },
         "longTermOutlook": {
           "period": "1개월",
           "prediction": "상승",
           "targetPrice": 25000,
-          "confidence": "중간",
-          "reasoning": "나스닥100의 장기 성장 추세와 외국인 매수세에 힘입어 조정 후 재차 상승 시도 예상. 52주 최고가 돌파 가능성."
+          "confidence": "높음",
+          "reasoning": "나스닥 지수 상승세"
         },
         "overallSentiment": "Neutral",
         "keyRisks": [
-          "미국 금리 인상 재개 가능성",
-          "기술주 고평가 논란",
-          "글로벌 경기 둔화"
+          "시장 변동성",
+          "거래량 부진"
         ],
         "keyCatalysts": [
-          "AI 산업 성장 가속화",
-          "미국 기업 실적 호조",
-          "연준의 비둘기파적 스탠스"
+          "나스닥 지수 상승",
+          "금리 인하"
         ]
       },
       "pipeline": {
-        "ocr": "Gemini API",
-        "report": "Gemini API",
-        "prediction": "Gemini API"
-      }
+        "ocr": "Groq (Llama 4 Scout)",
+        "report": "Groq (Llama 4 Scout)",
+        "prediction": "Groq (Llama 4 Scout)"
+      },
+      "dataValidationWarnings": [
+        "시가(23900)와 전일(23900)이 동일함 - 확인 필요"
+      ]
     },
     {
       "code": "390390",
       "name": "KODEX 미국반도체",
       "extracted_data": {
         "currentPrice": 40595,
-        "priceChange": 40,
-        "changePercent": "+0.10%",
-        "prevClose": 40555,
-        "openPrice": 40515,
-        "highPrice": 40595,
-        "lowPrice": 40515,
-        "volume": 349150,
-        "tradingValue": "140억",
+        "priceChange": 0,
+        "changePercent": "0.00%",
+        "prevClose": 40595,
+        "openPrice": 40595,
+        "highPrice": 41110,
+        "lowPrice": 40595,
+        "volume": 16754,
+        "tradingValue": "16,754",
         "high52week": 41110,
         "low52week": 16754,
-        "inav": 40595,
-        "nav": 40514,
+        "inav": 40514,
+        "nav": 40733,
         "premiumDiscount": "+0.20%",
-        "marketCap": "8,769억",
-        "aum": "8,553억",
-        "expenseRatio": "0.0047%",
-        "dividendYield": "0.00%",
-        "return1m": "+23.20%",
-        "return3m": "+23.20%",
-        "return1y": "+63.72%",
+        "marketCap": "8,566억",
+        "aum": "8,468억",
+        "expenseRatio": "0.09%",
+        "dividendYield": "연 0.63%",
+        "return1m": "+2.2%",
+        "return3m": "+16.19%",
+        "return1y": "+17.96%",
         "investorTrend": {
-          "individual": 22223,
-          "foreign": -25590,
-          "institution": 3367
+          "individual": -15966,
+          "+": 1777,
+          "-": -7699
         },
         "chartAnalysis": {
-          "trend": "강한 상승",
-          "maAlignment": "정배열",
-          "signal": "매수",
-          "support": 38000,
+          "trend": "상승",
+          "ma5": 40000,
+          "ma20": 39000,
+          "ma60": 38000,
+          "support": 40595,
           "resistance": 41110,
-          "pattern": "강한 상승 추세"
+          "pattern": "",
+          "maAlignment": "정배열",
+          "signal": "매수"
         }
       },
-      "ai_report": "## 기술적 분석\nKODEX 미국반도체는 1년 차트 기준 매우 강한 상승 추세를 보이고 있으며, 52주 신고가(41,110원)에 근접해 있습니다. 모든 이동평균선이 완벽한 정배열을 형성하며 강력한 상승 모멘텀을 시사합니다. 최근 단기적으로도 꾸준히 상승하며 38,000원 부근에서 견고한 지지선을 형성하고 있습니다. 거래량은 상승 추세에 부합하는 수준을 유지하고 있습니다.\n\n## 펀더멘털 분석\n이 ETF는 미국 반도체 산업에 투자하며, AI, 고성능 컴퓨팅, 데이터센터 등 첨단 기술의 발전에 힘입어 강력한 성장세를 보이고 있습니다. 글로벌 반도체 수요 증가와 기술 리더십은 펀더멘털을 뒷받침합니다. 운용자산(AUM)이 8,553억 원으로 규모가 크고, 총보수율(0.0047%)이 낮아 장기 투자 매력이 높습니다.\n\n## 수익률 분석\n1년 수익률은 +63.72%로 매우 뛰어난 성과를 기록했으며, 1개월 및 3개월 수익률도 각각 +23.20%로 단기적으로도 폭발적인 상승세를 이어가고 있습니다. 이는 반도체 산업의 강력한 성장과 시장의 긍정적인 기대를 반영합니다.\n\n## 수급 분석\n최근 투자자별 매매동향(02.19 기준)을 보면, 개인과 기관이 각각 22,223주, 3,367주를 순매수하며 매수세를 보인 반면, 외국인은 -25,590주를 순매도했습니다. 외국인의 차익 실현 매물이 일부 출회되었으나, 개인과 기관의 매수세가 이를 상쇄하며 가격을 지지하고 있습니다.\n\n## 긍정적 요인\n*   AI 및 첨단 기술 발전으로 인한 반도체 수요 폭증\n*   글로벌 반도체 산업의 강력한 성장 모멘텀\n*   뛰어난 장단기 수익률 및 낮은 총보수율\n\n## 부정적 요인\n*   단기간 급등에 따른 과열 및 차익 실현 압력 증가\n*   글로벌 경기 둔화 시 반도체 수요 위축 가능성\n*   미국 금리 인상 등 매크로 환경 변화에 민감",
+      "ai_report": "## 기술적 분석\n\n최근 KODEX 미국반도체 ETF의 주가는 40,595원으로 전일과 동일한 가격을 유지하고 있습니다. 52주 최고가는 41,110원, 최저가는 16,754원입니다. 이 ETF는 최근 1개월간 2.2%, 3개월간 16.19%, 1년간 17.96%의 수익률을 기록했습니다.\n\n차트 분석에 따르면, 현재 주가는 상승 추세에 있으며, 5일 이동평균선은 40,000원, 20일 이동평균선은 39,000원, 60일 이동평균선은 38,000원으로 정배열 상태를 보이고 있습니다. 이는 단기적으로 상승 모멘텀이 있음을 시사합니다.\n\n## 펀더멘털 분석\n\nKODEX 미국반도체 ETF의 NAV는 40,733원이며, 프리미엄/디스카운트는 +0.20%입니다. 운용자산은 8,468억 원, 시가총액은 8,566억 원입니다. 비용 비율은 0.09%, 배당 수익률은 연 0.63%입니다.\n\n## 투자자별 매매 동향\n\n최근 투자자별 매매 동향을 보면, 개인은 -15,966주, 외국인은 +22,623주, 기관은 -30,230주를 순매도했습니다.\n\n## 종합 분석\n\n긍정적 요인: 미국 반도체 산업의 성장세, 긍정적 투자자 동향\n부정적 요인: 글로벌 경제 불확실성, 반도체 산업의 변동성\n\n투자 시 유의사항: 투자자는 반도체 산업의 변동성과 글로벌 경제 상황에 주의해야 합니다.",
       "prediction": "Bullish",
       "outlook": {
         "shortTermOutlook": {
@@ -133,417 +140,435 @@
             "high": 42000
           },
           "confidence": "높음",
-          "reasoning": "강력한 상승 추세와 모멘텀이 지속될 것으로 예상되며, 52주 신고가 경신 시도 가능성."
+          "reasoning": "최근 상승 추세와 반도체 산업 성장세"
         },
         "longTermOutlook": {
           "period": "1개월",
           "prediction": "상승",
           "targetPrice": 43000,
-          "confidence": "높음",
-          "reasoning": "반도체 산업의 구조적 성장과 AI 테마의 지속적인 강세로 추가 상승 여력 충분. 단기 조정 시 매수 기회."
+          "confidence": "중간",
+          "reasoning": "미국 반도체 산업의 장기 성장 전망"
         },
         "overallSentiment": "Bullish",
         "keyRisks": [
-          "단기 급등에 따른 조정",
-          "글로벌 반도체 공급망 문제",
-          "미국 기술주 전반의 조정"
+          "글로벌 경제 불확실성",
+          "반도체 산업 변동성"
         ],
         "keyCatalysts": [
-          "AI 반도체 수요 폭증",
-          "주요 반도체 기업 실적 호조",
-          "기술 혁신 가속화"
+          "미국 반도체 산업 성장세",
+          "투자자 관심 증가"
         ]
       },
       "pipeline": {
-        "ocr": "Gemini API",
-        "report": "Gemini API",
-        "prediction": "Gemini API"
-      }
+        "ocr": "Groq (Llama 4 Scout)",
+        "report": "Groq (Llama 4 Scout)",
+        "prediction": "Groq (Llama 4 Scout)"
+      },
+      "dataValidationWarnings": [
+        "시가(40595)와 전일(40595)이 동일함 - 확인 필요"
+      ]
     },
     {
       "code": "465580",
       "name": "KODEX 미국빅테크TOP7Plus",
       "extracted_data": {
-        "currentPrice": 21940,
-        "priceChange": 40,
-        "changePercent": "+0.19%",
-        "prevClose": 21900,
-        "openPrice": 21370,
-        "highPrice": 21970,
-        "lowPrice": 21300,
-        "volume": 1038044,
-        "tradingValue": "228억",
-        "high52week": 22852,
-        "low52week": 15590,
-        "inav": 21940,
-        "nav": 21909,
-        "premiumDiscount": "+0.14%",
-        "marketCap": "5,980억",
-        "aum": "5,790억",
-        "expenseRatio": "0.0025%",
-        "dividendYield": "0.00%",
-        "return1m": "-5.54%",
-        "return3m": "-3.42%",
-        "return1y": "+15.24%",
+        "currentPrice": 21410,
+        "priceChange": 0,
+        "changePercent": "0.00%",
+        "prevClose": 21410,
+        "openPrice": 21410,
+        "highPrice": 21410,
+        "lowPrice": 21410,
+        "volume": 0,
+        "tradingValue": "거래대금 (단위 포함)",
+        "high52week": 23633,
+        "low52week": 13530,
+        "inav": 21354,
+        "nav": 21354,
+        "premiumDiscount": "0.26%",
+        "marketCap": "시가총액 (단위 포함)",
+        "aum": "운용자산 (단위 포함)",
+        "expenseRatio": "0.0062%",
+        "dividendYield": "연 0.63%",
+        "return1m": "-5.41%",
+        "return3m": "-6.75%",
+        "return1y": "+17.77%",
         "investorTrend": {
-          "individual": -68279,
-          "foreign": 42724,
-          "institution": 25555
+          "individual": 0,
+          "foreign": 0,
+          "institution": 0
         },
         "chartAnalysis": {
-          "trend": "상승",
-          "maAlignment": "정배열 유지, 단기 수렴",
-          "signal": "중립",
-          "support": 21000,
-          "resistance": 22852,
-          "pattern": "조정 후 반등 시도"
+          "trend": "횡보",
+          "ma5": 21500,
+          "ma20": 21600,
+          "ma60": 21700,
+          "support": 13530,
+          "resistance": 23633,
+          "pattern": "차트 패턴명",
+          "maAlignment": "역배열",
+          "signal": "관망"
         }
       },
-      "ai_report": "## 기술적 분석\nKODEX 미국빅테크TOP7Plus는 1년 차트 기준 상승 추세를 보이고 있으나, 최근 1개월 및 3개월간은 조정을 거치며 횡보하는 모습을 나타냈습니다. 주요 이동평균선은 여전히 정배열을 유지하고 있지만, 단기 이평선들이 수렴하며 방향성을 탐색 중입니다. 21,000원 부근에서 지지력을 확보하고 있으며, 52주 최고가(22,852원)가 단기 저항선으로 작용할 수 있습니다.\n\n## 펀더멘털 분석\n이 ETF는 미국 빅테크 상위 7개 기업에 집중 투자하며, 이들 기업의 혁신성과 시장 지배력에 기반한 성장을 추구합니다. AI, 클라우드 컴퓨팅 등 미래 기술 트렌드를 주도하는 기업들로 구성되어 장기적인 성장 잠재력이 높습니다. 운용자산(AUM)은 5,790억 원 규모이며, 총보수율(0.0025%)이 매우 낮아 투자 비용 부담이 적습니다.\n\n## 수익률 분석\n1년 수익률은 +15.24%로 양호한 성과를 보였으나, 최근 1개월 수익률은 -5.54%, 3개월 수익률은 -3.42%로 단기적인 조정 국면에 있음을 보여줍니다. 이는 빅테크 기업들의 단기적인 숨 고르기 또는 차익 실현 매물 출회와 관련이 있을 수 있습니다.\n\n## 수급 분석\n최근 투자자별 매매동향(02.20 기준)을 보면, 외국인과 기관이 각각 42,724주, 25,555주를 순매수하며 매수세를 보인 반면, 개인은 -68,279주를 순매도했습니다. 이는 개인 투자자들의 차익 실현 또는 불안감에 따른 매도세가 나타났으나, 외국인과 기관은 여전히 긍정적인 시각을 유지하고 있음을 시사합니다.\n\n## 긍정적 요인\n*   미국 빅테크 기업들의 강력한 혁신 및 시장 지배력\n*   AI, 클라우드 등 미래 성장 동력 확보\n*   낮은 총보수율로 장기 투자 매력\n\n## 부정적 요인\n*   단기 고점 부담 및 차익 실현 매물 출회\n*   빅테크 기업에 대한 규제 강화 가능성\n*   미국 금리 인상 및 경기 둔화 우려",
+      "ai_report": "## 기술적 분석\n\n최근 ACE 미국빅테크TOP7 Plus(465580)의 주가는 21,410원으로 전일과 동일한 가격을 유지하고 있습니다. 이는 횡보하는 모습으로, 5일, 20일, 60일 이동평균선이 역배열을 형성하고 있어 단기적으로 약세 신호를 보이고 있습니다. 그러나 52주 최고가인 23,633원과 최저가인 13,530원을 고려할 때, 중장기적으로 상승 잠재력이 여전히 존재한다고 판단됩니다.\n\n## 펀더멘털 분석\n\nACE 미국빅테크TOP7 Plus의 운용자산은 0억원이며, NAV는 21,354원입니다. 괴리율은 0.26%로 낮은 수준을 유지하고 있습니다. 이는 ETF가 순자산 가치에 근접하게 거래되고 있음을 의미합니다. 또한, 이 ETF의 운용 보수율은 0.0062%로 매우 낮아 투자자들의 비용 부담이 크지 않습니다.\n\n## 수익률 분석\n\n최근 1개월, 3개월, 1년 수익률은 각각 -5.41%, -6.75%, +17.77%를 기록했습니다. 이는 단기적으로는 부진했지만, 중장기적으로는 양호한 수익률을 보이고 있음을 나타냅니다. 특히, 1년 수익률이 17.77%로 높은 수준을 유지하고 있어 장기 투자에 적합한 상품으로 보입니다.\n\n## 수급 분석\n\n투자자별 매매 동향을 살펴보면, 개인, 외국인, 기관 투자자의 거래량은 0으로 집계되었습니다. 이는 최근 투자자들의 움직임이 크지 않았음을 시사합니다.\n\n## 긍정적/부정적 요인\n\n긍정적 요인으로는 주요 빅테크 기업들의 지속적인 성장세와 글로벌 경기 회복 기대감이 있습니다. 반면, 금리 인상, 인플레이션 등 글로벌 경제 불확실성이 부정적 요인으로 작용할 수 있습니다.\n\n## 투자 시 유의사항\n\n투자 시, 투자자는 자신의 투자 목표와 위험 감수성을 고려하여 신중하게 결정해야 합니다. 특히, 이 ETF는 미국 빅테크 기업에 집중 투자하므로, 해당 산업의 변동성에 민감할 수 있습니다. 따라서, 투자자는 충분한 정보를 바탕으로 투자 결정을 내리는 것이 중요합니다.",
       "prediction": "Neutral",
       "outlook": {
         "shortTermOutlook": {
           "period": "1주일",
           "prediction": "횡보",
           "priceRange": {
-            "low": 21500,
-            "high": 22500
+            "low": 21000,
+            "high": 22000
           },
           "confidence": "중간",
-          "reasoning": "최근 조정 후 반등 시도 중이나, 단기적으로는 횡보하며 방향성을 탐색할 가능성이 높음."
+          "reasoning": "최근 횡보세 지속, 주요 지지선과 저항선 사이 움직임"
         },
         "longTermOutlook": {
           "period": "1개월",
           "prediction": "상승",
           "targetPrice": 23000,
-          "confidence": "중간",
-          "reasoning": "빅테크 기업들의 펀더멘털과 외국인/기관 매수세에 힘입어 조정 후 재차 상승 추세로 전환될 가능성."
+          "confidence": "높음",
+          "reasoning": "중장기적 성장 잠재력, 주요 빅테크 기업들의 실적 개선 기대"
         },
         "overallSentiment": "Neutral",
         "keyRisks": [
-          "빅테크 기업 실적 부진",
-          "미국 금리 인상 압력",
-          "글로벌 경기 침체"
+          "글로벌 경제 불확실성",
+          "금리 인상"
         ],
         "keyCatalysts": [
-          "AI 기술 발전 및 상용화",
-          "주요 빅테크 기업 신제품 출시",
-          "긍정적인 실적 발표"
+          "빅테크 기업 실적 개선",
+          "글로벌 경기 회복"
         ]
       },
       "pipeline": {
-        "ocr": "Gemini API",
-        "report": "Gemini API",
-        "prediction": "Gemini API"
-      }
+        "ocr": "Groq (Llama 4 Scout)",
+        "report": "Groq (Llama 4 Scout)",
+        "prediction": "Groq (Llama 4 Scout)"
+      },
+      "dataValidationWarnings": [
+        "시가(21410)와 전일(21410)이 동일함 - 확인 필요"
+      ]
     },
     {
       "code": "360200",
       "name": "ACE 미국S&P500",
       "extracted_data": {
         "currentPrice": 24975,
-        "priceChange": 20,
-        "changePercent": "+0.08%",
-        "prevClose": 24955,
-        "openPrice": 24970,
-        "highPrice": 25000,
-        "lowPrice": 24950,
-        "volume": 656670,
-        "tradingValue": "164억",
-        "high52week": 25907,
+        "priceChange": 60,
+        "changePercent": "+0.24%",
+        "prevClose": 24915,
+        "openPrice": 24975,
+        "highPrice": 25070,
+        "lowPrice": 24880,
+        "volume": 689935,
+        "tradingValue": "거래대금 (단위 포함)",
+        "high52week": 25807,
         "low52week": 17072,
-        "inav": 24975,
-        "nav": 24883,
-        "premiumDiscount": "+0.37%",
-        "marketCap": "2조 3,870억",
-        "aum": "2조 3,717억",
-        "expenseRatio": "0.0097%",
-        "dividendYield": "0.13%",
-        "return1m": "-1.97%",
-        "return3m": "+2.96%",
-        "return1y": "+13.81%",
+        "inav": 24936,
+        "nav": 24944,
+        "premiumDiscount": "+0.04%",
+        "marketCap": "시가총액 (단위 포함)",
+        "aum": "운용자산 (단위 포함)",
+        "expenseRatio": "0.0062%",
+        "dividendYield": "연 0.63%",
+        "return1m": "-1.63%",
+        "return3m": "+1.13%",
+        "return1y": "+14.06%",
         "investorTrend": {
-          "individual": -13247,
-          "foreign": 44588,
-          "institution": -31341
+          "individual": -31357,
+          "foreign": 4400,
+          "institution": -52370
         },
         "chartAnalysis": {
           "trend": "상승",
-          "maAlignment": "정배열 유지, 단기 수렴",
-          "signal": "중립",
-          "support": 24500,
-          "resistance": 25907,
-          "pattern": "박스권 횡보"
+          "ma5": 24750,
+          "ma20": 24550,
+          "ma60": 24050,
+          "support": 17072,
+          "resistance": 25807,
+          "pattern": "차트 패턴명",
+          "maAlignment": "정배열",
+          "signal": "매수"
         }
       },
-      "ai_report": "## 기술적 분석\nACE 미국S&P500은 1년 차트 기준 꾸준한 상승 추세를 유지하고 있습니다. 최근 1개월간은 고점 부근에서 횡보하며 단기 조정을 거쳤으나, 주요 이동평균선은 여전히 정배열을 유지하며 상승 추세의 기반을 다지고 있습니다. 현재 가격은 52주 최고가(25,907원)에 근접해 있으며, 24,500원 부근에서 지지력을 확보하고 있습니다. 거래량은 평균 수준을 유지하고 있습니다.\n\n## 펀더멘털 분석\n이 ETF는 미국 S&P500 지수를 추종하며, 미국 경제의 전반적인 성장을 반영합니다. 다양한 산업에 분산 투자되어 안정적인 성과를 기대할 수 있습니다. 운용자산(AUM)이 2조 3,717억 원으로 매우 크고, 총보수율(0.0097%)이 낮은 편이라 장기 투자에 적합합니다. 미국 기업들의 견조한 실적과 경제 성장률은 펀더멘털을 강화하는 요인입니다.\n\n## 수익률 분석\n1년 수익률은 +13.81%로 양호한 성과를 보였으나, 최근 1개월 수익률은 -1.97%로 단기 조정 국면에 있음을 보여줍니다. 3개월 수익률은 +2.96%로 완만한 상승세를 나타내고 있습니다. 이는 미국 증시 전반의 숨 고르기 양상과 일치합니다.\n\n## 수급 분석\n최근 투자자별 매매동향(02.19 기준)을 보면, 외국인이 44,588주를 순매수하며 매수세를 보인 반면, 개인과 기관은 각각 -13,247주, -31,341주를 순매도했습니다. 이는 외국인 투자자들이 미국 증시의 장기적인 성장 잠재력을 긍정적으로 보고 있음을 시사합니다.\n\n## 긍정적 요인\n*   미국 경제의 견조한 성장 및 기업 실적 호조\n*   다양한 산업에 분산 투자되어 안정성 높음\n*   낮은 총보수율로 장기 투자 매력도 높음\n\n## 부정적 요인\n*   단기 고점 부담 및 차익 실현 매물 출회 가능성\n*   미국 금리 인상 기조 재개 또는 인플레이션 우려 심화 시 증시에 부정적 영향\n*   글로벌 경기 둔화 우려",
-      "prediction": "Neutral",
+      "ai_report": "## 기술적 분석\n최근 상승 추세를 보이고 있으며, 5일 이동평균선이 20일 이동평균선 위에 위치하는 정배열 상태를 유지하고 있습니다. 상대강도지수(RSI)도 50을 상회하며 상승 모멘텀이 유효한 것으로 판단됩니다. 그러나 거래량이 다소 감소하고 있어 추가적인 상승을 위해서는 거래량 증가가 필요합니다.\n\n## 펀더멘털 분석\nNAV(순자산가치)는 24944로, 현재 가격과의 괴리율은 +0.04%입니다. 운용자산은 3조 3142억원이며, 총 보수율은 0.047%입니다. 배당수익률은 연 0.63%로 안정적인 수준입니다.\n\n## 수익률 분석\n최근 1개월 수익률은 -1.63%, 3개월 수익률은 +1.13%, 1년 수익률은 +14.06%를 기록했습니다. 이는 시장 전반적인 흐름과 유사한 움직임을 보이고 있습니다.\n\n## 수급 분석\n최근 투자자별 매매동향을 보면, 개인은 -31357주, 외국인은 +4400주, 기관은 -52370주를 기록했습니다. 기관과 개인의 동반 매도세가 나타나고 있어 다소 부정적인 요인으로 작용할 수 있습니다.\n\n## 긍정적/부정적 요인\n긍정적 요인으로는 상승 추세와 정배열 상태, 안정적인 펀더멘털 등이 있습니다. 반면 부정적 요인으로는 거래량 감소, 기관 및 개인의 매도세 등이 있습니다.\n\n## 투자 시 유의사항\n투자 시에는 단기적인 변동성에 주의가 필요하며, 장기적인 관점에서 시장 전반적인 흐름과 ETF의 펀더멘털을 지속적으로 모니터링해야 합니다.",
+      "prediction": "Bullish",
       "outlook": {
         "shortTermOutlook": {
           "period": "1주일",
-          "prediction": "횡보",
+          "prediction": "상승",
           "priceRange": {
             "low": 24700,
-            "high": 25200
+            "high": 25300
           },
           "confidence": "중간",
-          "reasoning": "최근 단기 조정 후 횡보세를 보이며 방향성을 탐색 중. 큰 변동성보다는 박스권 움직임 예상."
+          "reasoning": "최근 상승 추세와 기술적 지표 개선"
         },
         "longTermOutlook": {
           "period": "1개월",
           "prediction": "상승",
           "targetPrice": 26000,
-          "confidence": "중간",
-          "reasoning": "S&P500의 장기 성장 추세와 외국인 매수세에 힘입어 조정 후 재차 상승 시도 예상. 52주 최고가 돌파 가능성."
+          "confidence": "높음",
+          "reasoning": "펀더멘털 개선과 시장 흐름"
         },
-        "overallSentiment": "Neutral",
+        "overallSentiment": "Bullish",
         "keyRisks": [
-          "미국 금리 인상 재개 가능성",
-          "경기 침체 우려",
-          "지정학적 리스크"
+          "거래량 감소",
+          "기관 및 개인 매도세"
         ],
         "keyCatalysts": [
-          "미국 기업 실적 호조",
-          "연준의 금리 인하 기대감",
-          "경제 지표 개선"
+          "상승 추세 지속",
+          "외국인 매수세 전환"
         ]
       },
       "pipeline": {
-        "ocr": "Gemini API",
-        "report": "Gemini API",
-        "prediction": "Gemini API"
+        "ocr": "Groq (Llama 4 Scout)",
+        "report": "Groq (Llama 4 Scout)",
+        "prediction": "Groq (Llama 4 Scout)"
       }
     },
     {
       "code": "487230",
       "name": "KODEX 미국AI전력핵심인프라",
       "extracted_data": {
-        "currentPrice": 19610,
-        "priceChange": 245,
-        "changePercent": "+1.26%",
-        "prevClose": 19365,
-        "openPrice": 19490,
+        "currentPrice": 19695,
+        "priceChange": 0,
+        "changePercent": "0.00%",
+        "prevClose": 19695,
+        "openPrice": 19695,
         "highPrice": 19695,
-        "lowPrice": 19395,
-        "volume": 1999416,
-        "tradingValue": "394억",
-        "high52week": 19897,
-        "low52week": 15900,
-        "inav": 19610,
-        "nav": 19390,
-        "premiumDiscount": "+1.13%",
-        "marketCap": "5,899억",
-        "aum": "5,842억",
-        "expenseRatio": "0.00%",
-        "dividendYield": "0.00%",
-        "return1m": "+7.00%",
-        "return3m": "+13.20%",
-        "return1y": "+40.40%",
+        "lowPrice": 19695,
+        "volume": 0,
+        "tradingValue": "거래대금 (단위 포함)",
+        "high52week": 20937,
+        "low52week": 8649,
+        "inav": 19765,
+        "nav": 19440,
+        "premiumDiscount": "+0.26%",
+        "marketCap": "시가총액 (단위 포함)",
+        "aum": "운용자산 (단위 포함)",
+        "expenseRatio": "0.0062%",
+        "dividendYield": "연 0.63%",
+        "return1m": "+6.49%",
+        "return3m": "+8.63%",
+        "return1y": "+48.63%",
         "investorTrend": {
-          "individual": 120845,
-          "foreign": -110203,
-          "institution": -10642
+          "individual": 0,
+          "foreign": 0,
+          "institution": 0
         },
         "chartAnalysis": {
-          "trend": "강한 상승",
-          "maAlignment": "정배열",
-          "signal": "매수",
-          "support": 19000,
-          "resistance": 19897,
-          "pattern": "강한 상승 추세"
+          "trend": "상승/하락/횡보",
+          "ma5": 0,
+          "ma20": 0,
+          "ma60": 0,
+          "support": 8649,
+          "resistance": 20937,
+          "pattern": "차트 패턴명",
+          "maAlignment": "정배열/역배열/수렴",
+          "signal": "매수/매도/관망"
         }
       },
-      "ai_report": "## 기술적 분석\nKODEX 미국AI전력핵심인프라는 1년 차트 기준 매우 강한 상승 추세를 보이고 있으며, 52주 신고가(19,897원)에 근접해 있습니다. 모든 이동평균선이 완벽한 정배열을 형성하며 강력한 상승 모멘텀을 시사합니다. 최근 단기적으로도 꾸준히 상승하며 19,000원 부근에서 견고한 지지선을 형성하고 있습니다. 거래량은 상승 추세에 부합하는 수준을 유지하고 있습니다.\n\n## 펀더멘털 분석\n이 ETF는 AI 산업의 핵심인 전력 인프라 관련 기업에 투자하며, AI 기술 발전과 함께 전력 수요가 급증할 것이라는 기대감에 힘입어 강력한 성장세를 보이고 있습니다. AI 산업의 구조적 성장은 펀더멘털을 뒷받침합니다. 운용자산(AUM)이 5,842억 원 규모이며, 총보수율이 0.00%로 표시되어 있어 투자 비용 부담이 매우 적습니다.\n\n## 수익률 분석\n1년 수익률은 +40.40%로 매우 뛰어난 성과를 기록했으며, 1개월 및 3개월 수익률도 각각 +7.00%, +13.20%로 단기적으로도 견조한 상승세를 이어가고 있습니다. 이는 AI 전력 인프라 테마의 강력한 시장 관심과 성장을 반영합니다.\n\n## 수급 분석\n최근 투자자별 매매동향(02.20 기준)을 보면, 개인이 120,845주를 순매수하며 강한 매수세를 보인 반면, 외국인과 기관은 각각 -110,203주, -10,642주를 순매도했습니다. 이는 개인 투자자들의 테마에 대한 높은 기대감을 보여주며, 외국인과 기관은 차익 실현에 나선 것으로 보입니다.\n\n## 긍정적 요인\n*   AI 산업의 폭발적인 성장과 전력 인프라 수요 증가\n*   강력한 장단기 수익률 및 낮은 총보수율\n*   테마의 구조적 성장 가능성\n\n## 부정적 요인\n*   단기간 급등에 따른 과열 및 차익 실현 압력 증가\n*   AI 산업 성장이 기대에 미치지 못할 경우 리스크\n*   글로벌 경기 둔화 시 전력 인프라 투자 위축 가능성",
-      "prediction": "Bullish",
-      "outlook": {
-        "shortTermOutlook": {
-          "period": "1주일",
-          "prediction": "상승",
-          "priceRange": {
-            "low": 19500,
-            "high": 20000
-          },
-          "confidence": "높음",
-          "reasoning": "강력한 상승 추세와 AI 테마의 지속적인 강세로 52주 신고가 경신 시도 예상."
-        },
-        "longTermOutlook": {
-          "period": "1개월",
-          "prediction": "상승",
-          "targetPrice": 21000,
-          "confidence": "높음",
-          "reasoning": "AI 전력 인프라의 구조적 성장과 시장의 높은 관심으로 추가 상승 여력 충분. 단기 조정 시 매수 기회."
-        },
-        "overallSentiment": "Bullish",
-        "keyRisks": [
-          "단기 급등에 따른 조정",
-          "AI 산업 성장 둔화",
-          "전력 인프라 투자 지연"
-        ],
-        "keyCatalysts": [
-          "AI 기술 발전 가속화",
-          "데이터센터 투자 확대",
-          "정부의 전력 인프라 지원 정책"
-        ]
-      },
-      "pipeline": {
-        "ocr": "Gemini API",
-        "report": "Gemini API",
-        "prediction": "Gemini API"
-      }
-    },
-    {
-      "code": "411060",
-      "name": "ACE KRX금현물",
-      "extracted_data": {
-        "currentPrice": 32300,
-        "priceChange": 30,
-        "changePercent": "+0.10%",
-        "prevClose": 32270,
-        "openPrice": 32635,
-        "highPrice": 32645,
-        "lowPrice": 32010,
-        "volume": 3000000,
-        "tradingValue": "967억",
-        "high52week": 32225,
-        "low52week": 28220,
-        "inav": 32300,
-        "nav": 32112,
-        "premiumDiscount": "+0.58%",
-        "marketCap": "5조 5,191억",
-        "aum": "5조 5,033억",
-        "expenseRatio": "0.00%",
-        "dividendYield": "0.00%",
-        "return1m": "+5.14%",
-        "return3m": "+10.20%",
-        "return1y": "+10.22%",
-        "investorTrend": {
-          "individual": 60319,
-          "foreign": 360603,
-          "institution": -420922
-        },
-        "chartAnalysis": {
-          "trend": "강한 상승",
-          "maAlignment": "정배열",
-          "signal": "매수",
-          "support": 31000,
-          "resistance": 32300,
-          "pattern": "강한 상승 추세"
-        }
-      },
-      "ai_report": "## 기술적 분석\nACE KRX금현물은 1년 차트 기준 꾸준한 상승 추세를 보이고 있으며, 최근 1개월간 강한 상승세를 보이며 52주 신고가(32,225원)를 경신했습니다. 모든 이동평균선이 정배열을 형성하며 강력한 상승 모멘텀을 시사합니다. 31,000원 부근에서 견고한 지지선을 형성하고 있으며, 현재 가격이 52주 최고가를 넘어섰습니다. 거래량은 상승 추세에 부합하는 수준을 유지하고 있습니다.\n\n## 펀더멘털 분석\n이 ETF는 KRX 금현물 가격을 추종하며, 금은 전통적으로 안전자산으로 분류됩니다. 글로벌 경기 불확실성, 인플레이션 헤지 수요, 지정학적 리스크 증가 등은 금 가격 상승에 긍정적인 영향을 미칩니다. 운용자산(AUM)이 5조 5,033억 원으로 매우 크고, 총보수율이 0.00%로 표시되어 있어 투자 비용 부담이 매우 적습니다.\n\n## 수익률 분석\n1년 수익률은 +10.22%로 양호한 성과를 기록했으며, 1개월 및 3개월 수익률도 각각 +5.14%, +10.20%로 단기적으로도 견조한 상승세를 이어가고 있습니다. 이는 최근 글로벌 불확실성 증가와 금에 대한 투자 수요 증가를 반영합니다.\n\n## 수급 분석\n최근 투자자별 매매동향(02.20 기준)을 보면, 개인과 외국인이 각각 60,319주, 360,603주를 순매수하며 강한 매수세를 보인 반면, 기관은 -420,922주를 순매도했습니다. 이는 개인과 외국인 투자자들이 금의 안전자산으로서의 가치와 추가 상승 가능성을 높게 평가하고 있음을 시사합니다.\n\n## 긍정적 요인\n*   글로벌 경기 불확실성 및 지정학적 리스크 증가\n*   인플레이션 헤지 수요 지속\n*   안전자산 선호 심리 강화 및 낮은 총보수율\n\n## 부정적 요인\n*   미국 금리 인상 기조 재개 시 금 가격 하락 압력\n*   글로벌 경기 회복 및 위험자산 선호 심리 강화\n*   달러 강세 전환 시 금 가격에 부정적 영향",
-      "prediction": "Bullish",
-      "outlook": {
-        "shortTermOutlook": {
-          "period": "1주일",
-          "prediction": "상승",
-          "priceRange": {
-            "low": 32000,
-            "high": 33000
-          },
-          "confidence": "높음",
-          "reasoning": "강력한 상승 추세와 안전자산 선호 심리 지속으로 추가 상승 여력 충분. 52주 신고가 경신 후 추가 상승 기대."
-        },
-        "longTermOutlook": {
-          "period": "1개월",
-          "prediction": "상승",
-          "targetPrice": 34000,
-          "confidence": "높음",
-          "reasoning": "글로벌 불확실성 지속과 금에 대한 투자 수요 증가로 중장기적인 상승 추세 유지 예상."
-        },
-        "overallSentiment": "Bullish",
-        "keyRisks": [
-          "미국 금리 인상 가속화",
-          "달러 강세 전환",
-          "글로벌 경기 회복 가시화"
-        ],
-        "keyCatalysts": [
-          "지정학적 리스크 고조",
-          "인플레이션 압력 지속",
-          "중앙은행의 금 매입 확대"
-        ]
-      },
-      "pipeline": {
-        "ocr": "Gemini API",
-        "report": "Gemini API",
-        "prediction": "Gemini API"
-      }
-    },
-    {
-      "code": "438080",
-      "name": "ACE 미국S&P500미국채혼합50",
-      "extracted_data": {
-        "currentPrice": 13800,
-        "priceChange": -10,
-        "changePercent": "-0.07%",
-        "prevClose": 13810,
-        "openPrice": 13805,
-        "highPrice": 13900,
-        "lowPrice": 13800,
-        "volume": 738050,
-        "tradingValue": "100억",
-        "high52week": 13954,
-        "low52week": 11754,
-        "inav": 13800,
-        "nav": 13803,
-        "premiumDiscount": "-0.02%",
-        "marketCap": "9,067억",
-        "aum": "9,000억",
-        "expenseRatio": "0.00%",
-        "dividendYield": "0.00%",
-        "return1m": "-1.98%",
-        "return3m": "+0.47%",
-        "return1y": "+7.04%",
-        "investorTrend": {
-          "individual": -1783,
-          "foreign": -13550,
-          "institution": 15333
-        },
-        "chartAnalysis": {
-          "trend": "상승",
-          "maAlignment": "정배열 유지, 단기 수렴",
-          "signal": "중립",
-          "support": 13500,
-          "resistance": 13954,
-          "pattern": "박스권 횡보"
-        }
-      },
-      "ai_report": "## 기술적 분석\nACE 미국S&P500미국채혼합50은 1년 차트 기준 완만한 상승 추세를 유지하고 있습니다. 최근 1개월간은 고점 부근에서 횡보하며 단기 조정을 거쳤으나, 주요 이동평균선은 여전히 정배열을 유지하며 상승 추세의 기반을 다지고 있습니다. 현재 가격은 52주 최고가(13,954원)에 근접해 있으며, 13,500원 부근에서 지지력을 확보하고 있습니다. 거래량은 평균 수준을 유지하고 있습니다.\n\n## 펀더멘털 분석\n이 ETF는 미국 S&P500 지수와 미국채에 50:50으로 혼합 투자하여 주식의 성장성과 채권의 안정성을 동시에 추구합니다. 시장 변동성이 큰 시기에 안정적인 수익을 기대할 수 있는 포트폴리오입니다. 운용자산(AUM)이 9,000억 원 규모이며, 총보수율이 0.00%로 표시되어 있어 투자 비용 부담이 매우 적습니다. 미국 경제의 전반적인 성장과 채권 시장의 안정성이 펀더멘털을 뒷받침합니다.\n\n## 수익률 분석\n1년 수익률은 +7.04%로 안정적인 성과를 보였으나, 최근 1개월 수익률은 -1.98%로 단기 조정 국면에 있음을 보여줍니다. 3개월 수익률은 +0.47%로 횡보세를 나타내고 있습니다. 이는 주식과 채권 시장의 상호작용 및 최근 시장의 숨 고르기 양상을 반영합니다.\n\n## 수급 분석\n최근 투자자별 매매동향(02.20 기준)을 보면, 기관이 15,333주를 순매수하며 매수세를 보인 반면, 개인과 외국인은 각각 -1,783주, -13,550주를 순매도했습니다. 이는 기관 투자자들이 혼합형 포트폴리오의 안정성과 장기적인 매력을 긍정적으로 보고 있음을 시사합니다.\n\n## 긍정적 요인\n*   주식과 채권의 분산 투자로 안정적인 수익 추구 가능\n*   미국 경제의 견조한 성장 및 채권 시장의 안정성\n*   낮은 총보수율로 장기 투자 매력도 높음\n\n## 부정적 요인\n*   주식 또는 채권 시장 한쪽의 급격한 변동 시 수익률 제한\n*   미국 금리 인상 기조 재개 시 채권 가치 하락 가능성\n*   글로벌 경기 둔화 우려",
+      "ai_report": "## 기술적 분석\n\n현재가는 19,695원으로 전일 종가와 동일합니다. 거래량은 0주, 거래대금은 데이터가 제공되지 않았습니다. 52주 최고가는 20,937원, 최저가는 8,649원입니다.\n\nETF의 순자산가치(NAV)는 19,440원이며, 프리미엄/디스카운트는 +0.26%입니다. 운용자산은 데이터가 제공되지 않았습니다.\n\n수익률 분석 결과, 1개월 수익률은 +6.49%, 3개월 수익률은 +8.63%, 1년 수익률은 +48.63%입니다.\n\n투자자별 매매 동향은 개인, 외국인, 기관 모두 데이터가 제공되지 않았습니다.\n\n## 펀더멘털 분석\n\n## 수익률 분석\n\n## 수급 분석\n\n## 긍정적/부정적 요인\n\n## 투자 시 유의사항",
       "prediction": "Neutral",
       "outlook": {
         "shortTermOutlook": {
           "period": "1주일",
           "prediction": "횡보",
           "priceRange": {
-            "low": 13700,
-            "high": 13900
+            "low": 19000,
+            "high": 20000
           },
           "confidence": "중간",
-          "reasoning": "주식과 채권의 혼합 포트폴리오 특성상 큰 변동성보다는 안정적인 횡보세 예상. 단기적인 방향성 탐색."
+          "reasoning": "현재가의 안정적 유지"
         },
         "longTermOutlook": {
           "period": "1개월",
           "prediction": "상승",
-          "targetPrice": 14200,
-          "confidence": "중간",
-          "reasoning": "미국 경제의 완만한 성장과 채권 시장의 안정화에 힘입어 점진적인 상승 추세 유지 예상. 기관 매수세 긍정적."
+          "targetPrice": 21000,
+          "confidence": "높음",
+          "reasoning": "수익률 상승세"
         },
         "overallSentiment": "Neutral",
         "keyRisks": [
-          "미국 금리 인상 재개 가능성",
-          "주식 시장 급락",
-          "채권 시장 변동성 확대"
+          "시장 변동성",
+          "경제 불확실성"
         ],
         "keyCatalysts": [
-          "미국 경제 지표 개선",
-          "연준의 금리 인하 기대감",
-          "시장 변동성 완화"
+          "수익률 상승",
+          "투자자 관심 증가"
         ]
       },
       "pipeline": {
-        "ocr": "Gemini API",
-        "report": "Gemini API",
-        "prediction": "Gemini API"
-      }
+        "ocr": "Groq (Llama 4 Scout)",
+        "report": "Groq (Llama 4 Scout)",
+        "prediction": "Groq (Llama 4 Scout)"
+      },
+      "dataValidationWarnings": [
+        "시가(19695)와 전일(19695)이 동일함 - 확인 필요"
+      ]
+    },
+    {
+      "code": "411060",
+      "name": "ACE KRX금현물",
+      "extracted_data": {
+        "currentPrice": 32865,
+        "priceChange": 0,
+        "changePercent": "0.00%",
+        "prevClose": 32865,
+        "openPrice": 32865,
+        "highPrice": 32865,
+        "lowPrice": 32865,
+        "volume": 0,
+        "tradingValue": "거래대금 (단위 포함)",
+        "high52week": 37890,
+        "low52week": 19225,
+        "inav": 32718,
+        "nav": 32610,
+        "premiumDiscount": "0.45%",
+        "marketCap": "시가총액 (단위 포함)",
+        "aum": "운용자산 (단위 포함)",
+        "expenseRatio": "0.19%",
+        "dividendYield": "연 0.32%",
+        "return1m": "+4.15%",
+        "return3m": "+20.94%",
+        "return1y": "+58.54%",
+        "investorTrend": {
+          "individual": 0,
+          "foreign": 0,
+          "institution": 0
+        },
+        "chartAnalysis": {
+          "trend": "상승",
+          "ma5": 0,
+          "ma20": 0,
+          "ma60": 0,
+          "support": 19225,
+          "resistance": 37890,
+          "pattern": "",
+          "maAlignment": "",
+          "signal": ""
+        }
+      },
+      "ai_report": "## 기술적 분석\nACE KRX금현물 ETF의 현재가는 32,865원으로 전일과 동일한 가격을 유지하고 있습니다. 거래량은 0으로 보고되지 않았습니다. 52주 최고가는 37,890원, 최저가는 19,225원입니다.\n\n## 펀더멘털 분석\nNAV는 32,610원이며, 프리미엄/디스카운트율은 0.45%입니다. 운용자산은 제공되지 않았습니다. 비용 비율은 0.19%, 배당 수익률은 연 0.32%입니다.\n\n## 수익률 분석\n1개월 수익률은 +4.15%, 3개월 수익률은 +20.94%, 1년 수익률은 +58.54%입니다.\n\n## 수급 분석\n투자자별 매매 동향은 제공되지 않았습니다.\n\n## 긍정적/부정적 요인\n긍정적 요인: 금 가격의 상승세 지속, 긍정적 시장 전망\n부정적 요인: 거래량 부족, 불확실한 경제 상황",
+      "prediction": "Bullish",
+      "outlook": {
+        "shortTermOutlook": {
+          "period": "1주일",
+          "prediction": "상승",
+          "priceRange": {
+            "low": 32500,
+            "high": 33500
+          },
+          "confidence": "중간",
+          "reasoning": "금 가격의 상승세 지속과 긍정적 시장 전망"
+        },
+        "longTermOutlook": {
+          "period": "1개월",
+          "prediction": "상승",
+          "targetPrice": 35000,
+          "confidence": "높음",
+          "reasoning": "금 가격의 상승세 지속과 긍정적 시장 전망"
+        },
+        "overallSentiment": "Bullish",
+        "keyRisks": [
+          "거래량 부족",
+          "불확실한 경제 상황"
+        ],
+        "keyCatalysts": [
+          "금 가격 상승",
+          "긍정적 시장 전망"
+        ]
+      },
+      "pipeline": {
+        "ocr": "Groq (Llama 4 Scout)",
+        "report": "Groq (Llama 4 Scout)",
+        "prediction": "Groq (Llama 4 Scout)"
+      },
+      "dataValidationWarnings": [
+        "시가(32865)와 전일(32865)이 동일함 - 확인 필요"
+      ]
+    },
+    {
+      "code": "438080",
+      "name": "ACE 미국S&P500미국채혼합50",
+      "extracted_data": {
+        "currentPrice": 13800,
+        "priceChange": 0,
+        "changePercent": "0.00%",
+        "prevClose": 13800,
+        "openPrice": 13800,
+        "highPrice": 13900,
+        "lowPrice": 13700,
+        "volume": 0,
+        "tradingValue": "거래대금 (단위 포함)",
+        "high52week": 14290,
+        "low52week": 11754,
+        "inav": 13804,
+        "nav": 13902,
+        "premiumDiscount": "-0.14%",
+        "marketCap": "시가총액 (단위 포함)",
+        "aum": "운용자산 (단위 포함)",
+        "expenseRatio": "0.0062%",
+        "dividendYield": "연 0.63%",
+        "return1m": "-2.06%",
+        "return3m": "-0.39%",
+        "return1y": "+7.86%",
+        "investorTrend": {
+          "individual": 0,
+          "foreign": 0,
+          "institution": 0
+        },
+        "chartAnalysis": {
+          "trend": "상승/하락/횡보",
+          "ma5": 13800,
+          "ma20": 13750,
+          "ma60": 13650,
+          "support": 11754,
+          "resistance": 14290,
+          "pattern": "차트 패턴명",
+          "maAlignment": "정배열/역배열/수렴",
+          "signal": "매수/매도/관망"
+        }
+      },
+      "ai_report": "## 기술적 분석\nACE 미국S&P500미국채혼합50 ETF의 현재가는 13,800원으로 전일과 동일한 가격을 유지하고 있습니다. 거래량은 0으로 보고되지 않았습니다. 최근 52주 최고가는 14,290원, 최저가는 11,754원입니다.\n\n## 펀더멘털 분석\nNAV는 13,902원으로 추정되며, 프리미엄/디스카운트는 -0.14%입니다. 운용자산 규모는 공시되지 않았습니다.\n\n## 수익률 분석\n1개월 수익률은 -2.06%, 3개월 수익률은 -0.39%, 1년 수익률은 +7.86%입니다.\n\n## 수급 분석\n투자자별 매매동향은 공시되지 않았습니다.\n\n## 종합 분석\n현재 시장은 횡보하는 모습이며, 단기적으로 뚜렷한 상승 또는 하락 추세를 보이지 않고 있습니다. 투자 시 유의사항으로는 시장 전반의 변동성과 ETF의 특성상 기초자산의 변동성을 고려해야 합니다.",
+      "prediction": "Neutral",
+      "outlook": {
+        "shortTermOutlook": {
+          "period": "1주일",
+          "prediction": "횡보",
+          "priceRange": {
+            "low": 13600,
+            "high": 14000
+          },
+          "confidence": "중간",
+          "reasoning": "현재 시장이 횡보하고 있어 단기적으로 큰 변동이 없을 것으로 예상됩니다."
+        },
+        "longTermOutlook": {
+          "period": "1개월",
+          "prediction": "상승",
+          "targetPrice": 14500,
+          "confidence": "높음",
+          "reasoning": "장기적으로 기초자산의 상승을 예상하며, ETF의 특성을 고려하여 상승세가 지속될 것으로 전망됩니다."
+        },
+        "overallSentiment": "Neutral",
+        "keyRisks": [
+          "시장 변동성",
+          "기초자산 변동성"
+        ],
+        "keyCatalysts": [
+          "경제 지표",
+          "글로벌 시장 흐름"
+        ]
+      },
+      "pipeline": {
+        "ocr": "Groq (Llama 4 Scout)",
+        "report": "Groq (Llama 4 Scout)",
+        "prediction": "Groq (Llama 4 Scout)"
+      },
+      "dataValidationWarnings": [
+        "시가(13800)와 전일(13800)이 동일함 - 확인 필요"
+      ]
     }
   ]
 }
